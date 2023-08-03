@@ -2,6 +2,9 @@
 
 #include "ikvm_input.hpp"
 
+#include <linux/videodev2.h>
+
+#include <deque>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -23,7 +26,8 @@ class Video
      * @param[in] input - Reference to the Input object
      * @param[in] fr    - desired frame rate of the video
      */
-    Video(const std::string& p, Input& input, int fr = 30, int sub = 0);
+    Video(const std::string& p, Input& input, int fr = 30, int sub = 0,
+          int fmt = 0);
     ~Video();
     Video(const Video&) = default;
     Video& operator=(const Video&) = default;
@@ -36,8 +40,11 @@ class Video
      * @return Pointer to the video frame data
      */
     char* getData();
+    char* getData(unsigned int i);
     /* @brief Performs read to grab latest video frame */
     void getFrame();
+    /* @brief Performs return done video frames back to driver */
+    void releaseFrames();
     /*
      * @brief Gets whether or not the video frame needs to be resized
      *
@@ -73,7 +80,28 @@ class Video
      */
     inline size_t getFrameSize() const
     {
-        return buffers[lastFrameIndex].payload;
+        if (buffersDone.empty())
+            return 0;
+        return buffers[buffersDone.front()].payload;
+    }
+    inline size_t getFrameSize(unsigned int i) const
+    {
+        return buffers[i].payload;
+    }
+    /*
+     * @brief Gets the video frame count in sequence
+     *
+     * @return Value of video frame count in sequence
+     */
+    inline size_t getFrameCount() const
+    {
+        if (buffersDone.empty())
+            return 0;
+        return buffers[buffersDone.front()].sequence;
+    }
+    inline size_t getFrameCount(unsigned int i) const
+    {
+        return buffers[i].sequence;
     }
     /*
      * @brief Gets the height of the video frame
@@ -120,14 +148,48 @@ class Video
         subSampling = _sub;
     }
 
+    /*
+     * @brief Gets the jpeg format of the video frame
+     *
+     * @return Value of the jpeg format of video frame
+     *         0:standard jpeg, 1:reserved, 2:partial jpeg
+     */
+    inline int getFormat() const
+    {
+        return format;
+    }
+    /*
+     * @brief Sets the jpeg format of the video frame
+     *
+     * @return Value of the jpeg format of video frame
+     *         0:standard jpeg, 1:reserved, 2:partial jpeg
+     */
+    inline void setFormat(int _fmt)
+    {
+        format = _fmt;
+    }
+
+    /*
+     * @brief Gets the bounding-box of the partial-jpeg
+     *
+     * @return Bounding-box of the video frame
+     */
+    inline v4l2_rect getBoundingBox(unsigned int i) const
+    {
+        return buffers[i].box;
+    }
+
     /* @brief Number of bits per component of a pixel */
     static const int bitsPerSample;
     /* @brief Number of bytes of storage for a pixel */
     static const int bytesPerPixel;
     /* @brief Number of components in a pixel (i.e. 3 for RGB pixel) */
     static const int samplesPerPixel;
+    /* @brief done buffer storage */
+    std::deque<int> buffersDone;
 
   private:
+    void qbuf(int i);
     /*
      * @struct Buffer
      * @brief Store the address and size of frame data from streaming
@@ -146,6 +208,8 @@ class Video
         bool queued;
         size_t payload;
         size_t size;
+        uint32_t sequence;
+        v4l2_rect box;
     };
 
     /*
@@ -169,6 +233,8 @@ class Video
     int subSampling;
     /* @brief Reference to the Input object */
     Input& input;
+    /* @brief jpeg format */
+    int format;
     /* @brief Path to the V4L2 video device */
     const std::string path;
     /* @brief Streaming buffer storage */

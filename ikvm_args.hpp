@@ -79,6 +79,16 @@ class Args
     }
 
     /*
+     * @brief Get the video engine capture format
+     *
+     * @return Value of the video engine capture
+     */
+    inline int getFormat() const
+    {
+        return format;
+    }
+
+    /*
      * @brief Get the path to the USB keyboard device
      *
      * @return Reference to the string storing the path to the keyboard device
@@ -139,6 +149,9 @@ class Args
     int frameRate;
     /* @brief Desired subsampling (0: 444, 1: 420) */
     int subsampling;
+    /* @brief Desired capture format (0: standard jpeg, 1: reserved, 2: partial
+     * jpeg) */
+    int format;
     /* @brief Path to the USB keyboard device */
     std::string keyboardPath;
     /* @brief Path to the USB mouse device */

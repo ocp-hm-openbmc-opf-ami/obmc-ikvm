@@ -19,6 +19,8 @@
 #include <xyz/openbmc_project/Common/Device/error.hpp>
 #include <xyz/openbmc_project/Common/File/error.hpp>
 
+#define V4L2_PIX_FMT_FLAG_PARTIAL_JPG 0x00000004
+
 namespace ikvm
 {
 
@@ -30,9 +32,9 @@ using namespace phosphor::logging;
 using namespace sdbusplus::xyz::openbmc_project::Common::File::Error;
 using namespace sdbusplus::xyz::openbmc_project::Common::Device::Error;
 
-Video::Video(const std::string& p, Input& input, int fr, int sub) :
+Video::Video(const std::string& p, Input& input, int fr, int sub, int fmt) :
     resizeAfterOpen(false), timingsError(false), fd(-1), frameRate(fr),
-    lastFrameIndex(-1), height(600), width(800), subSampling(sub), input(input),
+    height(600), width(800), subSampling(sub), input(input), format(fmt),
     path(p), pixelformat(V4L2_PIX_FMT_JPEG)
 {}
 
@@ -43,12 +45,21 @@ Video::~Video()
 
 char* Video::getData()
 {
-    if (lastFrameIndex >= 0)
+    if (buffersDone.empty())
     {
-        return (char*)buffers[lastFrameIndex].data;
+        return nullptr;
     }
 
-    return nullptr;
+    return (char*)buffers[buffersDone.front()].data;
+}
+
+char* Video::getData(unsigned int i)
+{
+    if (i >= buffers.size())
+    {
+        return nullptr;
+    }
+    return (char*)buffers[i].data;
 }
 
 void Video::getFrame()
@@ -58,8 +69,16 @@ void Video::getFrame()
     v4l2_buffer buf;
     fd_set fds;
     timeval tv;
+    v4l2_selection comp = {.type = V4L2_BUF_TYPE_VIDEO_CAPTURE,
+                           .target = V4L2_SEL_TGT_CROP_DEFAULT};
 
     if (fd < 0)
+    {
+        return;
+    }
+
+    // Don't get more new frames until we run out of previous ones
+    if (!buffersDone.empty())
     {
         return;
     }
@@ -92,45 +111,69 @@ void Video::getFrame()
 
                 if (!(buf.flags & V4L2_BUF_FLAG_ERROR))
                 {
-                    lastFrameIndex = buf.index;
-                    buffers[lastFrameIndex].payload = buf.bytesused;
-                    break;
+                    buffers[buf.index].payload = buf.bytesused;
+                    buffers[buf.index].sequence = buf.sequence;
+                    if (format == 2)
+                    {
+                        rc = ioctl(fd, VIDIOC_G_SELECTION, &comp);
+                        if (rc)
+                        {
+                            log<level::ERR>("Failed to get selection box",
+                                            entry("ERROR=%s", strerror(errno)));
+                            comp.r.left = 0;
+                            comp.r.top = 0;
+                            comp.r.width = width;
+                            comp.r.height = height;
+                        }
+                        buffers[buf.index].box = comp.r;
+                    }
+                    buffersDone.push_back(buf.index);
                 }
                 else
                 {
                     buffers[buf.index].payload = 0;
+                    qbuf(buf.index);
                 }
             }
         } while (rc >= 0);
     }
 
     fcntl(fd, F_SETFL, fd_flags);
+}
 
-    for (unsigned int i = 0; i < buffers.size(); ++i)
+void Video::qbuf(int i)
+{
+    int rc;
+    v4l2_buffer buf;
+    if (!buffers[i].queued)
     {
-        if (i == (unsigned int)lastFrameIndex)
-        {
-            continue;
-        }
+        memset(&buf, 0, sizeof(v4l2_buffer));
+        buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        buf.memory = V4L2_MEMORY_MMAP;
+        buf.index = i;
 
-        if (!buffers[i].queued)
+        rc = ioctl(fd, VIDIOC_QBUF, &buf);
+        if (rc)
         {
-            memset(&buf, 0, sizeof(v4l2_buffer));
-            buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-            buf.memory = V4L2_MEMORY_MMAP;
-            buf.index = i;
-
-            rc = ioctl(fd, VIDIOC_QBUF, &buf);
-            if (rc)
-            {
-                log<level::ERR>("Failed to queue buffer",
-                                entry("ERROR=%s", strerror(errno)));
-            }
-            else
-            {
-                buffers[i].queued = true;
-            }
+            log<level::ERR>("Failed to queue buffer",
+                            entry("ERROR=%s", strerror(errno)));
         }
+        else
+        {
+            buffers[i].queued = true;
+        }
+    }
+}
+
+void Video::releaseFrames()
+{
+    int i;
+
+    if (!buffersDone.empty())
+    {
+        i = buffersDone.front();
+        buffersDone.pop_front();
+        qbuf(i);
     }
 }
 
@@ -183,7 +226,7 @@ bool Video::needsResize()
                 xyz::openbmc_project::Common::File::Open::PATH(path.c_str()));
         }
 
-        lastFrameIndex = -1;
+        buffersDone.clear();
         return true;
     }
 
@@ -434,6 +477,27 @@ void Video::start()
                 CALLOUT_DEVICE_PATH(path.c_str()));
     }
 
+    switch (format)
+    {
+        case 2:
+            fmt.fmt.pix.flags = V4L2_PIX_FMT_FLAG_PARTIAL_JPG;
+        default:
+        case 0:
+            fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_JPEG;
+            break;
+    }
+    rc = ioctl(fd, VIDIOC_S_FMT, &fmt);
+    if (rc < 0)
+    {
+        log<level::ERR>("Failed to set video device format",
+                        entry("ERROR=%s", strerror(errno)));
+        elog<ReadFailure>(
+            xyz::openbmc_project::Common::Device::ReadFailure::CALLOUT_ERRNO(
+                errno),
+            xyz::openbmc_project::Common::Device::ReadFailure::
+                CALLOUT_DEVICE_PATH(path.c_str()));
+    }
+
     memset(&sparm, 0, sizeof(v4l2_streamparm));
     sparm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     sparm.parm.capture.timeperframe.numerator = 1;
@@ -484,7 +548,7 @@ void Video::stop()
         return;
     }
 
-    lastFrameIndex = -1;
+    buffersDone.clear();
 
     rc = ioctl(fd, VIDIOC_STREAMOFF, &type);
     if (rc)
