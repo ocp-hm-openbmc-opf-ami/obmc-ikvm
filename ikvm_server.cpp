@@ -9,6 +9,8 @@
 #include <phosphor-logging/log.hpp>
 #include <xyz/openbmc_project/Common/error.hpp>
 
+#define ROUND_DOWN(x, r) ((x) & ~((r)-1))
+
 namespace ikvm
 {
 
@@ -98,6 +100,7 @@ void Server::sendFrame()
     rfbClientIteratorPtr it;
     rfbClientPtr cl;
     int64_t frame_crc = -1;
+    bool frame_sent = false;
 
     if (!data || pendingResize)
     {
@@ -110,6 +113,7 @@ void Server::sendFrame()
     {
         ClientData* cd = (ClientData*)cl->clientData;
         rfbFramebufferUpdateMsg* fu = (rfbFramebufferUpdateMsg*)cl->updateBuf;
+        auto i = video.buffersDone.front();
 
         if (!cd)
         {
@@ -147,6 +151,7 @@ void Server::sendFrame()
         }
 
         cd->needUpdate = false;
+        frame_sent = true;
 
         if (cl->enableLastRectEncoding)
         {
@@ -170,10 +175,19 @@ void Server::sendFrame()
                 cl->ublen = sz_rfbFramebufferUpdateMsg;
                 rfbSendUpdateBuf(cl);
                 cl->tightEncoding = rfbEncodingTight;
-                rfbSendTightHeader(cl, 0, 0, video.getWidth(),
-                                   video.getHeight());
+                if (video.getFormat() == 2)
+                {
+                    v4l2_rect r = video.getBoundingBox(i);
+
+                    rfbSendTightHeader(cl, r.left, r.top, r.width, r.height);
+                }
+                else
+                {
+                    rfbSendTightHeader(cl, 0, 0, video.getWidth(),
+                                       video.getHeight());
+                }
                 cl->updateBuf[cl->ublen++] = (char)(rfbTightJpeg << 4);
-                rfbSendCompressedDataTight(cl, data, video.getFrameSize());
+                rfbSendCompressedDataTight(cl, data, video.getFrameSize(i));
                 if (cl->enableLastRectEncoding)
                 {
                     rfbSendLastRectMarker(cl);
@@ -187,6 +201,9 @@ void Server::sendFrame()
     }
 
     rfbReleaseClientIterator(it);
+
+    if (frame_sent)
+        video.releaseFrames();
 }
 
 void Server::clientFramebufferUpdateRequest(
@@ -222,7 +239,7 @@ enum rfbNewClientAction Server::newClient(rfbClientPtr cl)
 {
     Server* server = (Server*)cl->screen->screenData;
 
-    cl->clientData = new ClientData(server->video.getFrameRate(),
+    cl->clientData = new ClientData(ROUND_DOWN(server->video.getFrameRate(), 8),
                                     &server->input);
     cl->clientGoneHook = clientGone;
     cl->clientFramebufferUpdateRequestHook = clientFramebufferUpdateRequest;
@@ -260,6 +277,7 @@ void Server::doResize()
             continue;
         }
 
+        // let skipFrame round-down per interval of aspeed's I frame
         // delay video updates to give the client time to resize
         cd->skipFrame = video.getFrameRate();
     }
