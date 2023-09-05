@@ -2,6 +2,7 @@
 
 #include "ikvm_server.hpp"
 #include "scancodes.hpp"
+#include "amikeysym.hpp"
 
 #include <err.h>
 #include <errno.h>
@@ -523,6 +524,9 @@ uint8_t Input::keyToScancode(rfbKeySym key)
                 break;
             case XK_KP_0:
                 scancode = USBHID_KEY_KP_0;
+                break;
+            case XK_Intlbackslash:
+                scancode = USBHID_KEY_INTLBACKSLASH;
                 break;
         }
     }
