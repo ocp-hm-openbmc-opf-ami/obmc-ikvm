@@ -5,6 +5,8 @@
 #include "ikvm_server.hpp"
 #include "ikvm_video.hpp"
 
+#include <boost/asio.hpp>
+
 #include <condition_variable>
 #include <mutex>
 
@@ -33,6 +35,12 @@ class Manager
     /* @brief Begins operation of the VNC server */
     void run();
 
+    /* @brief asynchronous external input*/
+    boost::asio::io_context io;
+
+    /* @brief Boolean to indicate BSOD status*/
+    std::atomic<bool> BSODFlag;
+
   private:
     /*
      * @brief Thread function to loop the RFB update operations
@@ -40,7 +48,7 @@ class Manager
      * @param[in] manager - Pointer to the Manager object
      */
     static void serverThread(Manager* manager);
-
+    static void statusUpdateThread(Manager* manager);
     /* @brief Notifies thread waiters that RFB operations are complete */
     void setServerDone();
     /* @brief Notifies thread waiters that video operations are complete */

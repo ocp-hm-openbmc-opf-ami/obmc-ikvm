@@ -23,7 +23,6 @@
 
 namespace ikvm
 {
-
 const int Video::bitsPerSample(8);
 const int Video::bytesPerPixel(4);
 const int Video::samplesPerPixel(3);
@@ -35,7 +34,7 @@ using namespace sdbusplus::xyz::openbmc_project::Common::Device::Error;
 Video::Video(const std::string& p, Input& input, int fr, int sub, int fmt) :
     resizeAfterOpen(false), timingsError(false), fd(-1), frameRate(fr),
     height(600), width(800), subSampling(sub), input(input), format(fmt),
-    path(p), pixelformat(V4L2_PIX_FMT_JPEG)
+    originalFormat(fmt), path(p), pixelformat(V4L2_PIX_FMT_JPEG)
 {}
 
 Video::~Video()
@@ -60,6 +59,18 @@ char* Video::getData(unsigned int i)
         return nullptr;
     }
     return (char*)buffers[i].data;
+}
+
+void Video::screenShot(const std::string& screenShotPath)
+{
+    if (buffersDone.front() < 0)
+    {
+        return;
+    }
+    std::ofstream screenshot(screenShotPath, std::ios::out | std::ios::binary);
+    screenshot.write((char*)buffers[buffersDone.front()].data,
+                     buffers[buffersDone.front()].size);
+    screenshot.close();
 }
 
 void Video::getFrame()
@@ -411,6 +422,13 @@ void Video::resize()
             xyz::openbmc_project::Common::Device::ReadFailure::
                 CALLOUT_DEVICE_PATH(path.c_str()));
     }
+}
+
+void Video::formatChange(int newformat)
+{
+    stop();
+    setFormat(newformat);
+    start();
 }
 
 void Video::start()

@@ -11,7 +11,6 @@
 
 namespace ikvm
 {
-
 /*
  * @class Video
  * @brief Sets up the V4L2 video device and performs read operations
@@ -41,6 +40,12 @@ class Video
      */
     char* getData();
     char* getData(unsigned int i);
+    /*
+     * @brief captures video frame and
+     * stores as an image(.jpeg) in BMC local memory(screenShotPath).
+     */
+    void screenShot(const std::string& screenShotPath);
+
     /* @brief Performs read to grab latest video frame */
     void getFrame();
     /* @brief Performs return done video frames back to driver */
@@ -53,6 +58,8 @@ class Video
     bool needsResize();
     /* @brief Performs the resize and re-allocates framebuffer */
     void resize();
+    /* @brief Performs the video frame jpeg-capture format change operation*/
+    void formatChange(int newformat);
     /* @brief Starts streaming from the video device */
     void start();
     /* @brief Stops streaming from the video device */
@@ -147,7 +154,6 @@ class Video
     {
         subSampling = _sub;
     }
-
     /*
      * @brief Gets the jpeg format of the video frame
      *
@@ -168,7 +174,17 @@ class Video
     {
         format = _fmt;
     }
-
+    /*
+     * @brief gets the jpeg format of the video frame
+     * set by OpenBMC ipKVM daemon.
+     *
+     * @return Value of the jpeg format of video frame
+     *         0:standard jpeg, 1:reserved, 2:Partial jpeg
+     */
+    inline int getOriginalFormat() const
+    {
+        return originalFormat;
+    }
     /*
      * @brief Gets the bounding-box of the partial-jpeg
      *
@@ -197,7 +213,8 @@ class Video
      */
     struct Buffer
     {
-        Buffer() : data(nullptr), queued(false), payload(0), size(0) {}
+        Buffer() : data(nullptr), queued(false), payload(0), size(0)
+        {}
         ~Buffer() = default;
         Buffer(const Buffer&) = default;
         Buffer& operator=(const Buffer&) = default;
@@ -235,6 +252,8 @@ class Video
     Input& input;
     /* @brief jpeg format */
     int format;
+    /* @brief jpeg fomat set by openBMC ikvm Daemon*/
+    int originalFormat;
     /* @brief Path to the V4L2 video device */
     const std::string path;
     /* @brief Streaming buffer storage */
