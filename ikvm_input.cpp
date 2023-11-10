@@ -27,7 +27,7 @@ Input::Input(const std::string& kbdPath, const std::string& ptrPath,
              const std::string& udc) :
     keyboardFd(-1),
     pointerFd(-1), keyboardReport{0}, pointerReport{0}, keyboardPath(kbdPath),
-    pointerPath(ptrPath), udcName(udc)
+    pointerPath(ptrPath), udcName(udc), keyboardLedState{INITIAL_LED_STATE}
 {
     hidUdcStream.exceptions(std::ofstream::failbit | std::ofstream::badbit);
     hidUdcStream.open(hidUdcPath, std::ios::out | std::ios::app);
@@ -169,6 +169,8 @@ void Input::keyEvent(rfbBool down, rfbKeySym key, rfbClientPtr cl)
     {
         return;
     }
+    /* read Keyboard output before processing keyevent */
+    input->readKeyBoardOutReport();
 
     if (down)
     {
@@ -226,6 +228,11 @@ void Input::keyEvent(rfbBool down, rfbKeySym key, rfbClientPtr cl)
     if (sendKeyboard)
     {
         input->writeKeyboard(input->keyboardReport);
+        
+        /* delay to give sufficient time for output report generation */
+        std::this_thread::sleep_for(std::chrono::milliseconds(15));
+        /* read Keyboard output report after write operation */
+        input->readKeyBoardOutReport();
     }
 }
 
@@ -308,6 +315,11 @@ void Input::sendWakeupPacket()
 
         writeKeyboard(wakeupReport);
     }
+}
+
+int Input::getkeyboardLedState()
+{
+    return keyboardLedState.Byte;
 }
 
 uint8_t Input::keyToMod(rfbKeySym key)
@@ -532,6 +544,64 @@ uint8_t Input::keyToScancode(rfbKeySym key)
     }
 
     return scancode;
+}
+
+int Input::readKeyBoardOutReport()
+{
+    char buf[KEY_REPORT_LENGTH] = {0};
+    int usbfd = -1;
+    int ret = 0;
+    int cmd_len = -1;
+
+    fd_set rfds;
+    usbfd = open(keyboardPath.c_str(), O_RDWR | O_CLOEXEC | O_NONBLOCK);
+    if (usbfd < 0)
+    {
+        log<level::ERR>("Failed to open input device",
+                        entry("PATH=%s", keyboardPath.c_str()),
+                        entry("ERROR=%s", strerror(errno)));
+        elog<Open>(xyz::openbmc_project::Common::File::Open::ERRNO(errno),
+                   xyz::openbmc_project::Common::File::Open::PATH(
+                       keyboardPath.c_str()));
+        return -errno;
+    }
+
+    FD_ZERO(&rfds);
+    FD_SET(STDIN_FILENO, &rfds);
+    FD_SET(usbfd, &rfds);
+    ret = select(usbfd + 1, &rfds, NULL, NULL, NULL);
+    
+    if (ret < 0)
+    {
+        log<level::ERR>("select() : ", 
+                        entry("ERROR=%s", strerror(errno)));
+        return -errno;
+    }
+    if (FD_ISSET(usbfd, &rfds))
+    {
+        cmd_len = read(usbfd, buf, KEY_REPORT_LENGTH - 1);
+        if (cmd_len < 0)
+        {   
+            log<level::ERR>("Failed to read keyboard report",
+                            entry("ERROR=%s", strerror(errno)));
+            return -errno;
+        }
+
+        keyboardLedState.Byte = static_cast<uint8_t>(buf[0]);
+    }
+    close(usbfd);
+    log<level::DEBUG>(
+        "\n === keyboardLedState === \n",
+        entry("keyboardLedState:%2x", keyboardLedState.Byte),
+        entry("NumLock : %s  ",
+              (std::string{(keyboardLedState.NumLock ? "ON" : "OFF")}).c_str()),
+        entry("CapsLock : %s  ",
+            (std::string{(keyboardLedState.CapsLock ? "ON" : "OFF")}).c_str()),
+        entry("ScrollLock : %s\n",
+              (std::string{(keyboardLedState.ScrollLock ? "ON" : "OFF")})
+                  .c_str()));
+
+    return cmd_len;
 }
 
 bool Input::writeKeyboard(const uint8_t* report)

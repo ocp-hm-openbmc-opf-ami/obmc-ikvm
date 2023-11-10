@@ -11,6 +11,28 @@
 namespace ikvm
 {
 /*
+ * data type to hold output report from USB device
+ * as of now the first three bits are used by USB
+ * device.
+ */
+typedef union
+{
+    uint8_t Byte;
+    struct
+    {
+        uint8_t NumLock : 1;
+        uint8_t CapsLock : 1;
+        uint8_t ScrollLock : 1;
+        uint8_t Compose : 1;
+        uint8_t Kana : 1;
+        uint8_t Constant : 3;
+    };
+} LEDData_t;
+
+/* @brief Initial value of Host LED state In Server*/
+constexpr uint8_t INITIAL_LED_STATE = 0xFF;
+
+/*
  * @class Input
  * @brief Receives events from RFB clients and sends reports to the USB input
  *        device
@@ -59,6 +81,9 @@ class Input
     /* @brief Sends a wakeup data packet to the USB input device */
     void sendWakeupPacket();
 
+    /* @brief getter method for keyboardLedState  */
+    int getkeyboardLedState();
+
   private:
     static constexpr int NUM_MODIFIER_BITS = 4;
     static constexpr int KEY_REPORT_LENGTH = 8;
@@ -99,6 +124,12 @@ class Input
      */
     static uint8_t keyToScancode(rfbKeySym key);
 
+    /*
+     * @brief Reads the Host keyboard-output report
+     * & updates the hostkeyboardLEDState.
+     */
+    int readKeyBoardOutReport();
+
     bool writeKeyboard(const uint8_t* report);
     void writePointer(const uint8_t* report);
 
@@ -116,6 +147,8 @@ class Input
     std::string pointerPath;
     /* @brief Name of UDC */
     std::string udcName;
+    /* @brief Holds the KeyboardLED state of Host */
+    LEDData_t keyboardLedState;
     /*
      * @brief Mapping of RFB key code to report data index to keep track
      *        of which keys are down

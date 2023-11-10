@@ -101,6 +101,7 @@ void Server::sendFrame()
     rfbClientPtr cl;
     int64_t frame_crc = -1;
     bool frame_sent = false;
+    Server* serverdata = (Server*)server->screenData;
 
     if (!data || pendingResize)
     {
@@ -153,6 +154,33 @@ void Server::sendFrame()
         cd->needUpdate = false;
         frame_sent = true;
 
+        if (serverdata->input.getkeyboardLedState() == INITIAL_LED_STATE)
+        {
+            /*
+             * ============================================================
+             * When Keyboard LED state in Server is at INITIAL_LED_STATE
+             * Server sends fake keyevent to Host for getting the original
+             * Host KeyboardLED State
+             *
+             *  NOTE: 0xFF7F : keysym value of NumLock key
+             * ============================================================
+             */
+            serverdata->input.keyEvent(true, 0xFF7F, cl);
+            serverdata->input.keyEvent(false, 0xFF7F, cl);
+            serverdata->input.keyEvent(true, 0xFF7F, cl);
+            serverdata->input.keyEvent(false, 0xFF7F, cl);
+        }
+        /* Provide extra rectangle for the HostKeyboard LED
+         * state data */
+        if (cl->enableKeyboardLedState)
+        {
+            fu->nRects = 0xFFFF;
+        }
+        else
+        {
+            fu->nRects = Swap16IfLE(1);
+        }
+
         if (cl->enableLastRectEncoding)
         {
             fu->nRects = 0xFFFF;
@@ -188,16 +216,35 @@ void Server::sendFrame()
                 }
                 cl->updateBuf[cl->ublen++] = (char)(rfbTightJpeg << 4);
                 rfbSendCompressedDataTight(cl, data, video.getFrameSize(i));
-                if (cl->enableLastRectEncoding)
-                {
-                    rfbSendLastRectMarker(cl);
-                }
                 rfbSendUpdateBuf(cl);
                 break;
 
             default:
                 break;
         }
+
+        /* Send the Host LED status to client */
+        if (cl->enableKeyboardLedState)
+        {
+            if ((cl->lastKeyboardLedState) !=
+                (serverdata->input.getkeyboardLedState()))
+            {
+                log<level::DEBUG>(
+                    " \n === Host Keyboard LED status changed ==== \n",
+                    entry("FROM: %d ----> TO: %d", cl->lastKeyboardLedState,
+                          serverdata->input.getkeyboardLedState()));
+
+                cl->lastKeyboardLedState =
+                    serverdata->input.getkeyboardLedState();
+
+                rfbSendKeyboardLedState(cl);
+            }
+        }
+        if (cl->enableLastRectEncoding)
+        {
+            rfbSendLastRectMarker(cl);
+        }
+        rfbSendUpdateBuf(cl);
     }
 
     rfbReleaseClientIterator(it);
