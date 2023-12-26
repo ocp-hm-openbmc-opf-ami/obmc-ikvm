@@ -6,12 +6,16 @@
 #include <sdbusplus/asio/object_server.hpp>
 #include <sdbusplus/bus/match.hpp>
 #include <boost/container/flat_map.hpp>
+#include <phosphor-logging/log.hpp>
 #include <variant>
 
-std::string bsodAsJpeg = "/tmp/screenShotBSOD.jpeg";
+namespace fs = std::filesystem;
 
 namespace ikvm
 {
+std::string bsodAsJpeg = "/tmp/screenShotBSOD.jpeg";
+using namespace phosphor::logging;
+
 Manager::Manager(const Args& args) :
     continueExecuting(true), serverDone(false), videoDone(true),
     input(args.getKeyboardPath(), args.getPointerPath(), args.getUdcName()),
@@ -35,6 +39,25 @@ void Manager::run()
     const std::string objPath = "/xyz/openbmc_project/sensors/os/";
     std::string target = "/xyz/openbmc_project/sensors/os";
     std::string sennType = "xyz.openbmc_project.Sensor.State";
+    std::string bsodDir= "/etc/bsod";
+
+    /* Create a new directory for storing BSOD in Persistent 
+     * memory of BMC 
+     */
+    try
+    {
+        if(!(fs::is_directory(bsodDir)))
+        {
+            fs::create_directory(bsodDir);
+        }
+        ikvm::bsodAsJpeg = bsodDir + "/screenShotBSOD.jpeg" ;
+    }
+    catch (fs::filesystem_error& e)
+    {
+        log<level::ERR>("Failed to create BSOD folder",
+                        entry("ERROR=%s", e.what()));
+        return;
+    }
 
     auto conn = std::make_shared<sdbusplus::asio::connection>(io);
     std::shared_ptr<sdbusplus::bus::match::match> BSODMatcher;
@@ -154,9 +177,9 @@ void Manager::statusUpdateThread(Manager* manager)
         * Do not enable for production Build
         *=========================================================*/
         #if 0 
-        if (std::filesystem::exists("/var/BSODtrigger"))
+        if (fs::exists("/var/BSODtrigger"))
         {
-            std::filesystem::remove("/var/BSODtrigger");
+            fs::remove("/var/BSODtrigger");
             manager->BSODFlag.store(true);
         }
         #endif
