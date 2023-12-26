@@ -202,7 +202,13 @@ void Server::sendFrame()
                 fu->type = rfbFramebufferUpdate;
                 cl->ublen = sz_rfbFramebufferUpdateMsg;
                 rfbSendUpdateBuf(cl);
-                cl->tightEncoding = rfbEncodingTight;
+                if (rfbTightEncodingSupported())
+                {
+                    cl->tightEncoding = rfbEncodingTight;
+                }
+                else
+                    cl->tightEncoding = rfbEncodingJPEG;
+
                 if (video.getFormat() == 2)
                 {
                     v4l2_rect r = video.getBoundingBox(i);
@@ -214,7 +220,10 @@ void Server::sendFrame()
                     rfbSendTightHeader(cl, 0, 0, video.getWidth(),
                                        video.getHeight());
                 }
-                cl->updateBuf[cl->ublen++] = (char)(rfbTightJpeg << 4);
+                if (rfbTightEncodingSupported())
+                {
+                    cl->updateBuf[cl->ublen++] = (char)(rfbTightJpeg << 4);
+                }
                 rfbSendCompressedDataTight(cl, data, video.getFrameSize(i));
                 rfbSendUpdateBuf(cl);
                 break;
