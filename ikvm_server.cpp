@@ -202,7 +202,7 @@ void Server::sendFrame()
                 fu->type = rfbFramebufferUpdate;
                 cl->ublen = sz_rfbFramebufferUpdateMsg;
                 rfbSendUpdateBuf(cl);
-                if (rfbTightEncodingSupported())
+                if (cl->tightEncodingSupport)
                 {
                     cl->tightEncoding = rfbEncodingTight;
                 }
@@ -220,7 +220,7 @@ void Server::sendFrame()
                     rfbSendTightHeader(cl, 0, 0, video.getWidth(),
                                        video.getHeight());
                 }
-                if (rfbTightEncodingSupported())
+                if (cl->tightEncodingSupport)
                 {
                     cl->updateBuf[cl->ublen++] = (char)(rfbTightJpeg << 4);
                 }
