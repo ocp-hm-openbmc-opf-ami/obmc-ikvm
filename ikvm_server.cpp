@@ -289,6 +289,7 @@ void Server::clientGone(rfbClientPtr cl)
         rfbMarkRectAsModified(server->server, 0, 0, server->video.getWidth(),
                               server->video.getHeight());
     }
+    updatePowerSaveMode(1);
 }
 
 enum rfbNewClientAction Server::newClient(rfbClientPtr cl)
@@ -306,6 +307,7 @@ enum rfbNewClientAction Server::newClient(rfbClientPtr cl)
         server->frameCounter = 0;
     }
 
+    updatePowerSaveMode(0);
     return RFB_CLIENT_ACCEPT;
 }
 
@@ -339,6 +341,20 @@ void Server::doResize()
     }
 
     rfbReleaseClientIterator(it);
+}
+
+void Server::updatePowerSaveMode(int status)
+{
+    if ((status == 0) || (status == 1))
+    {
+        auto bus = sdbusplus::bus::new_system();
+        auto methodCall = bus.new_method_call(
+            "xyz.openbmc_project.Settings",
+            "/xyz/openbmc_project/logging/settings", "xyz.openbmc_project.USB",
+            "SetUSBPowerSaveMode");
+        methodCall.append(status);
+        bus.call(methodCall);
+    }
 }
 
 } // namespace ikvm

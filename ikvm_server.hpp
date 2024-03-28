@@ -111,6 +111,13 @@ class Server
     /* @brief Performs the resize operation on the framebuffer */
     void doResize();
 
+    /*
+     * @brief Updates USB Power Save Mode Status
+     *
+     * @param[in] status 0 for disable 1 for enable
+     */
+    static void updatePowerSaveMode(int status);
+
     /* @brief Boolean to indicate if a resize operation is on-going */
     bool pendingResize;
     /* @brief Number of frames handled since a client connected */
