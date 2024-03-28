@@ -1,19 +1,14 @@
 #include "ikvm_manager.hpp"
 
-#include <thread>
-
-#include <sdbusplus/asio/connection.hpp>
-#include <sdbusplus/asio/object_server.hpp>
-#include <sdbusplus/bus/match.hpp>
-#include <boost/container/flat_map.hpp>
 #include <phosphor-logging/log.hpp>
-#include <variant>
+
+#include <thread>
 
 namespace fs = std::filesystem;
 
 namespace ikvm
 {
-std::string bsodAsJpeg = "/tmp/screenShotBSOD.jpeg";
+
 using namespace phosphor::logging;
 
 Manager::Manager(const Args& args) :
@@ -21,84 +16,27 @@ Manager::Manager(const Args& args) :
     input(args.getKeyboardPath(), args.getPointerPath(), args.getUdcName()),
     video(args.getVideoPath(), input, args.getFrameRate(),
           args.getSubsampling(), args.getFormat()),
-    server(args, input, video)
+    server(args, input, video), monitor()
 {}
 
 void Manager::run()
 {
-    /*
-     * ===================================================================
-     *  D-Bus Signal Monitor for BSOD
-     * 
-     *  Asynchronous Triggering of BSODflag when Run-time Critical Stop/BSOD
-     *  propertiesChanged signal is recived 
-     * ===================================================================
-     */
-    BSODFlag.store(false);
-
-    const std::string objPath = "/xyz/openbmc_project/sensors/os/";
-    std::string target = "/xyz/openbmc_project/sensors/os";
-    std::string sennType = "xyz.openbmc_project.Sensor.State";
-    std::string bsodDir= "/etc/bsod";
-
-    /* Create a new directory for storing BSOD in Persistent 
-     * memory of BMC 
-     */
-    try
-    {
-        if(!(fs::is_directory(bsodDir)))
-        {
-            fs::create_directory(bsodDir);
-        }
-        ikvm::bsodAsJpeg = bsodDir + "/screenShotBSOD.jpeg" ;
-    }
-    catch (fs::filesystem_error& e)
-    {
-        log<level::ERR>("Failed to create BSOD folder",
-                        entry("ERROR=%s", e.what()));
-        return;
-    }
-
+    monitor.createUtilities();
     auto conn = std::make_shared<sdbusplus::asio::connection>(io);
-    std::shared_ptr<sdbusplus::bus::match::match> BSODMatcher;
+    conn->request_name(kvmServiceName.c_str());
+    sdbusplus::asio::object_server objServer(conn);
 
-    /* 
-     * Callback function to raise BSODflag when propertiesChanged 
-     * signal received 
-     */    
-    auto BSODMatcherCallback = 
-        [this, &conn, objPath](sdbusplus::message::message& msg) {
-        std::string discreteInterface;
-        boost::container::flat_map<std::string, std::variant<uint16_t>> properties;
-        msg.read(discreteInterface,properties);
+    Interface interface(objServer);
+    interface.addInterfaces();
 
-        uint16_t offset = std::get<uint16_t>(properties.begin()->second);
-    /* 
-     * offset value 2 indicates Run-time Critical Stop/BSOD 
-     * Data Reference
-     *  IPMI Spec
-     *   -> Sensor Type Codes and Data 
-     *      -> Table Sensor Type Codes 
-     *         -> OS Stop / Shutdown 
-     *            -> 01h Run-time Critical Stop
-     */    
-        if(offset == 2)
-        {
-            BSODFlag.store(true);
-        }
-    };
-    
-    BSODMatcher = std::make_shared<sdbusplus::bus::match::match>(
-        static_cast<sdbusplus::bus::bus&>(*conn),
-        "type='signal',member='PropertiesChanged',path_namespace='" + target +
-            "',arg0namespace='" + sennType + "'",
-        std::move(BSODMatcherCallback));
+    sdbusplus::bus::match_t bsodMatcher = monitor.bsodErrorEventMonitor(conn);
+    sdbusplus::bus::match_t screenshotMatcher = monitor.screenshotMonitor(conn);
 
     std::thread run(serverThread, this);
-    std::thread runstatusUpdate(statusUpdateThread, this);
+    std::thread runStatusUpdate(statusUpdateThread, this);
     io.run();
 
-    runstatusUpdate.join();
+    runStatusUpdate.join();
     run.join();
 }
 
@@ -116,11 +54,11 @@ void Manager::statusUpdateThread(Manager* manager)
 {
     while (manager->continueExecuting)
     {
-        if (manager->server.wantsFrame() || manager->BSODFlag.load())
+        if (manager->server.wantsFrame() || scrnshotFlag.load())
         {
             manager->video.start();
 
-            if (manager->BSODFlag.load())
+            if (scrnshotFlag.load())
             {
                 if (manager->video.getFormat() == 2)
                 {
@@ -135,12 +73,12 @@ void Manager::statusUpdateThread(Manager* manager)
 
             manager->video.getFrame();
 
-            if (manager->BSODFlag.load())
+            if (scrnshotFlag.load())
             {
                 if (manager->video.getFormat() != 2)
                 {
                     manager->video.screenShot(bsodAsJpeg);
-                    manager->BSODFlag.store(false);
+                    scrnshotFlag.store(false);
                 }
             }
 
@@ -171,19 +109,6 @@ void Manager::statusUpdateThread(Manager* manager)
             manager->setVideoDone();
             manager->waitServer();
         }
-
-        /*=========================================================
-        * following code is added for Debugging Purpose only
-        * Do not enable for production Build
-        *=========================================================*/
-        #if 0 
-        if (fs::exists("/var/BSODtrigger"))
-        {
-            fs::remove("/var/BSODtrigger");
-            manager->BSODFlag.store(true);
-        }
-        #endif
-        /********************************************************/
     }
 }
 

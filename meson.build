@@ -21,8 +21,11 @@ executable(
     [
         'ikvm_args.cpp',
         'ikvm_input.cpp',
+        'ikvm_interface.cpp',
         'ikvm_manager.cpp',
+        'ikvm_monitor.cpp',
         'ikvm_server.cpp',
+        'ikvm_utils.cpp',
         'ikvm_video.cpp',
         'obmc-ikvm.cpp',
     ],

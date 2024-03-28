@@ -2,7 +2,10 @@
 
 #include "ikvm_args.hpp"
 #include "ikvm_input.hpp"
+#include "ikvm_interface.hpp"
+#include "ikvm_monitor.hpp"
 #include "ikvm_server.hpp"
+#include "ikvm_utils.hpp"
 #include "ikvm_video.hpp"
 
 #include <boost/asio.hpp>
@@ -38,9 +41,6 @@ class Manager
     /* @brief asynchronous external input*/
     boost::asio::io_context io;
 
-    /* @brief Boolean to indicate BSOD status*/
-    std::atomic<bool> BSODFlag;
-
   private:
     /*
      * @brief Thread function to loop the RFB update operations
@@ -73,6 +73,9 @@ class Manager
     Video video;
     /* @brief RFB server object */
     Server server;
+    /*@brief Monitor object*/
+    Monitor monitor;
+
     /* @brief Condition variable to enable waiting for thread completion */
     std::condition_variable sync;
     /* @brief Mutex for waiting on condition variable safely */
