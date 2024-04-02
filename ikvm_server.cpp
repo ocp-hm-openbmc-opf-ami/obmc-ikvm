@@ -115,9 +115,23 @@ void Server::sendFrame()
         ClientData* cd = (ClientData*)cl->clientData;
         rfbFramebufferUpdateMsg* fu = (rfbFramebufferUpdateMsg*)cl->updateBuf;
         auto i = video.buffersDone.front();
+        auto currentTime = std::chrono::steady_clock::now();
 
         if (!cd)
         {
+            continue;
+        }
+
+        /* For session Timeout Implementation*/
+        auto timeSinceLastActive =
+            std::chrono::duration_cast<std::chrono::seconds>(
+                currentTime - cd->lastActivityTime);
+
+        /* Once the timeSinceLastActive surpasses the timeout value, the client
+         * will be disconnected */
+        if (timeSinceLastActive >= timeoutValue)
+        {
+            rfbCloseClient(cl);
             continue;
         }
 

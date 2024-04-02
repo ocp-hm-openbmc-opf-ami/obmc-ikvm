@@ -30,5 +30,6 @@ const std::string bsodAsJpeg = "/etc/bsod/screenShotBSOD.jpeg";
 const std::string bsodDir = "/etc/bsod";
 
 std::shared_ptr<sdbusplus::asio::dbus_interface> kvmScrnshotIface = nullptr;
+std::chrono::duration<int64_t> timeoutValue = std::chrono::seconds(1800);
 
 } // namespace ikvm

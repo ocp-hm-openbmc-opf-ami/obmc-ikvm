@@ -52,4 +52,7 @@ extern const std::string bsodDir;
 
 /*@brief pointer to Screenshot interface */
 extern std::shared_ptr<sdbusplus::asio::dbus_interface> kvmScrnshotIface;
+
+/*@brief set the time duration for session timeout*/
+extern std::chrono::duration<int64_t> timeoutValue;
 } // namespace ikvm
