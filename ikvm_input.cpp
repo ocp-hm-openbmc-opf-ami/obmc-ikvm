@@ -56,7 +56,9 @@ void Input::connect()
         if (udcName.empty())
         {
             bool found = false;
-            for (const auto& port : fs::directory_iterator(usbVirtualHubPath))
+            for (const auto& port : fs::directory_iterator(
+                     fs::exists(usbVirtualHubPath2700) ? usbVirtualHubPath2700
+                                                       : usbVirtualHubPath))
             {
                 // /sys/bus/platform/devices/1e6a0000.usb-vhub/1e6a0000.usb-vhub:pX
                 if (fs::is_directory(port) && !fs::is_symlink(port))
