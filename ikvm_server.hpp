@@ -2,12 +2,8 @@
 
 #include "ikvm_args.hpp"
 #include "ikvm_input.hpp"
-#include "ikvm_video.hpp"
 #include "ikvm_utils.hpp"
-
-#include <rfb/rfb.h>
-
-#include <vector>
+#include "ikvm_video.hpp"
 
 namespace ikvm
 {
@@ -30,10 +26,12 @@ class Server
          * @param[in] s - Number of frames to skip when client connects
          * @param[in] i - Pointer to Input object
          */
+
         ClientData(int s, Input* i) : skipFrame(s), input(i), last_crc{-1}
         {
             needUpdate = false;
             lastActivityTime = std::chrono::steady_clock::now();
+            sessionId = 0;
         }
         ~ClientData() = default;
         ClientData(const ClientData&) = default;
@@ -45,6 +43,7 @@ class Server
         Input* input;
         bool needUpdate;
         int64_t last_crc;
+        uint8_t sessionId;
         /* @brief Getting last activity time based on key and pointer event */
         std::chrono::time_point<std::chrono::steady_clock> lastActivityTime;
     };

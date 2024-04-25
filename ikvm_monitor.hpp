@@ -15,17 +15,14 @@
 
 #include "ikvm_utils.hpp"
 
+#include <boost/container/flat_map.hpp>
 #include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/asio/object_server.hpp>
 #include <sdbusplus/bus/match.hpp>
 
-#include <boost/container/flat_map.hpp>
-#include <phosphor-logging/log.hpp>
-#include <variant>
-#include <iostream>
 #include <filesystem>
-
-
+#include <iostream>
+#include <variant>
 
 namespace fs = std::filesystem;
 
@@ -56,7 +53,8 @@ class Monitor
      *
      *  @param[in]conn Pointer to Dbus Connection
      */
-    sdbusplus::bus::match_t bsodErrorEventMonitor(const std::shared_ptr<sdbusplus::asio::connection> conn);
+    sdbusplus::bus::match_t bsodErrorEventMonitor(
+        const std::shared_ptr<sdbusplus::asio::connection> conn);
 
     /*
      *
@@ -64,8 +62,17 @@ class Monitor
      *
      *  @param[in]conn Pointer to Dbus Connection
      */
-    sdbusplus::bus::match_t screenshotMonitor(const std::shared_ptr<sdbusplus::asio::connection> conn);
+    sdbusplus::bus::match_t screenshotMonitor(
+        const std::shared_ptr<sdbusplus::asio::connection> conn);
 
+    /*
+     *
+     *  @brief D-Bus Signal Monitor for Ssession manager
+     *
+     *  @param[in]conn Pointer to Dbus Connection
+     */
+    sdbusplus::bus::match_t
+        sessionMonitor(const std::shared_ptr<sdbusplus::asio::connection> conn);
     /*
      * @brief Create new directory for kvm  in Persistent
      * memory of BMC if not available

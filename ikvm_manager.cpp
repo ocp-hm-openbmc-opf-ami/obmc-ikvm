@@ -31,6 +31,7 @@ void Manager::run()
 
     sdbusplus::bus::match_t bsodMatcher = monitor.bsodErrorEventMonitor(conn);
     sdbusplus::bus::match_t screenshotMatcher = monitor.screenshotMonitor(conn);
+    sdbusplus::bus::match_t triggerSignal = monitor.sessionMonitor(conn);
 
     std::thread run(serverThread, this);
     std::thread runStatusUpdate(statusUpdateThread, this);

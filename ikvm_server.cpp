@@ -11,6 +11,15 @@
 
 #define ROUND_DOWN(x, r) ((x) & ~((r)-1))
 
+#define DEFAULT_IP "~"           // Loopback IP address
+#define USER_NAME "local"        // Default user
+#define KVM 0                    // KVM session type
+#define PRIV_LEVEL_ADMIN 0x04    // Privilege level for admin
+#define KVM_DEFAULT_USER_ID 0    // Default user ID
+#define LOGOUT 1                 // Reson for session unregister
+
+#define DBUS_PROPERTIES_INTERFACE "org.freedesktop.DBus.Properties"
+
 namespace ikvm
 {
 
@@ -133,6 +142,24 @@ void Server::sendFrame()
         {
             rfbCloseClient(cl);
             continue;
+        }
+
+        /* Disconnect the clients when unregister happen from other services*/
+        if (cd->sessionId)
+        {
+            bool found = false;
+            for (const auto& id : activeSessionIDs)
+            {
+                if (cd->sessionId == id)
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+            {
+                rfbCloseClient(cl);
+            }
         }
 
         if (cd->skipFrame)
@@ -293,6 +320,37 @@ void Server::clientFramebufferUpdateRequest(
 void Server::clientGone(rfbClientPtr cl)
 {
     Server* server = (Server*)cl->screen->screenData;
+    ClientData* cd = (ClientData*)cl->clientData;
+
+    // Find the session ID in the vector
+    auto it = std::find(activeSessionIDs.begin(), activeSessionIDs.end(),
+                        cd->sessionId);
+
+    // If the session ID is found, remove it from the vector
+    if (it != activeSessionIDs.end())
+    {
+        activeSessionIDs.erase(it);
+    }
+
+    /* Method call for unregistering */
+    for (const auto& id : activeSessionIDs)
+    {
+        if (cd->sessionId == id)
+        {
+            auto busUnRegister = sdbusplus::bus::new_default_system();
+            auto m = busUnRegister.new_method_call(
+                smgrService.c_str(), smgrObjPath.c_str(), smgrIface.c_str(),
+                "SessionUnregister");
+            uint8_t sessionType = KVM;
+            int reason = LOGOUT;
+
+            m.append(cd->sessionId, sessionType, reason);
+            auto reply = busUnRegister.call(m);
+            bool status = false;
+
+            reply.read(status);
+        }
+    }
 
     delete (ClientData*)cl->clientData;
     cl->clientData = nullptr;
@@ -314,6 +372,52 @@ enum rfbNewClientAction Server::newClient(rfbClientPtr cl)
                                     &server->input);
     cl->clientGoneHook = clientGone;
     cl->clientFramebufferUpdateRequestHook = clientFramebufferUpdateRequest;
+
+    ClientData* cd = (ClientData*)cl->clientData;
+
+    /* Method call for Registering */
+    auto busRegister = sdbusplus::bus::new_default_system();
+    auto m = busRegister.new_method_call(smgrService.c_str(),
+                                         smgrObjPath.c_str(), smgrIface.c_str(),
+                                         "SessionRegister");
+    std::string ipAdress = DEFAULT_IP;
+    std::string userName = USER_NAME;
+    uint8_t sessionType = KVM;
+    uint8_t privilege = PRIV_LEVEL_ADMIN;
+    uint8_t userId = KVM_DEFAULT_USER_ID;
+
+    propertyValue propertyval;
+
+    m.append(cd->sessionId, ipAdress, userName, sessionType, privilege, userId);
+
+    auto reply = busRegister.call(m);
+    bool status = false;
+    reply.read(status);
+
+    if (status)
+    {
+        auto msg2 = busRegister.new_method_call(
+            smgrService.c_str(), smgrObjPath.c_str(), DBUS_PROPERTIES_INTERFACE,
+            "Get");
+
+        msg2.append(smgrKVMIface, "KvmSessionInfo");
+
+        auto reply1 = busRegister.call(msg2);
+        reply1.read(propertyval);
+
+        if (std::holds_alternative<sessionRet>(propertyval))
+        {
+            sessionRet& vec = std::get<sessionRet>(propertyval);
+            if (!vec.empty())
+            {
+                const auto& latestEntry = vec.back(); /* Get the last element */
+                cd->sessionId = static_cast<uint8_t>(std::get<0>(latestEntry));
+                // Add the session ID to the vector
+                activeSessionIDs.push_back(cd->sessionId);
+            }
+        }
+    }
+
     if (!server->numClients++)
     {
         server->input.connect();

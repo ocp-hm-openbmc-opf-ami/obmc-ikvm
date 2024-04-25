@@ -13,6 +13,8 @@
 
 #include "ikvm_monitor.hpp"
 
+#include "ikvm_server.hpp"
+
 namespace ikvm
 {
 
@@ -103,6 +105,57 @@ sdbusplus::bus::match_t Monitor::screenshotMonitor(
         std::move(screenshotCallback));
 
     return screenshotMatcher;
+}
+
+sdbusplus::bus::match_t
+    Monitor::sessionMonitor(std::shared_ptr<sdbusplus::asio::connection> conn)
+{
+    auto sessionCallback = [&conn](sdbusplus::message_t& msg) {
+        try
+        {
+            sessionRet updatedlist;
+            std::string interfaceName;
+            std::vector<uint16_t> UpdatedSessionIDs;
+
+            boost::container::flat_map<std::string, propertyValue>
+                sessionProperty;
+            msg.read(interfaceName, sessionProperty);
+
+            if (interfaceName == smgrKVMIface)
+            {
+                for (const auto& entry : sessionProperty)
+                {
+                    if (entry.first == "KvmSessionInfo")
+                    {
+                        updatedlist = std::get<sessionRet>(entry.second);
+                        for (const auto& tuple : updatedlist)
+                        {
+                            // Extract session ID
+                            uint16_t sessionID = std::get<0>(tuple);
+                            UpdatedSessionIDs.push_back(sessionID);
+                        }
+                        // Update active session IDs with the updated session
+                        // IDs
+                        activeSessionIDs.assign(UpdatedSessionIDs.begin(),
+                                                UpdatedSessionIDs.end());
+                    }
+                }
+            }
+        }
+        catch (const std::exception& e)
+        {
+            log<level::ERR>("Error handling Screenshot trigger signal",
+                            entry("ERROR=%s", e.what()));
+        }
+    };
+
+    sdbusplus::bus::match_t triggerSignal(
+        static_cast<sdbusplus::bus::bus&>(*conn),
+        "type='signal',member='PropertiesChanged',path='" + smgrObjPath +
+            "',arg0namespace='" + smgrKVMIface + "'",
+        std::move(sessionCallback));
+
+    return triggerSignal;
 }
 
 void Monitor::createUtilities()

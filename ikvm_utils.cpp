@@ -32,4 +32,10 @@ const std::string bsodDir = "/etc/bsod";
 std::shared_ptr<sdbusplus::asio::dbus_interface> kvmScrnshotIface = nullptr;
 std::chrono::duration<int64_t> timeoutValue = std::chrono::seconds(1800);
 
+const std::string smgrService = "xyz.openbmc_project.SessionManager";
+const std::string smgrObjPath = "/xyz/openbmc_project/SessionManager";
+const std::string smgrIface = "xyz.openbmc_project.SessionManager";
+const std::string smgrKVMIface = "xyz.openbmc_project.SessionManager.Kvm";
+
+std::vector<uint8_t> activeSessionIDs;
 } // namespace ikvm
