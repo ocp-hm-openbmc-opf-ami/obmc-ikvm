@@ -54,13 +54,17 @@ extern const std::string bsodDir;
 extern std::shared_ptr<sdbusplus::asio::dbus_interface> kvmScrnshotIface;
 
 /*@brief set the time duration for session timeout*/
-extern std::chrono::duration<int64_t> timeoutValue;
+extern std::chrono::duration<uint64_t> timeoutValue;
 
 /*@brief session manager DBus- details*/
 extern const std::string smgrService;
 extern const std::string smgrObjPath;
 extern const std::string smgrIface;
 extern const std::string smgrKVMIface;
+
+/*@brief service manager DBus- details*/
+extern const std::string serviceMgrKvmObjPath;
+extern const std::string serviceMgrIface;
 
 using sessionInfo =
     std::tuple<uint16_t, std::string, std::string, uint8_t, uint8_t, uint8_t>;

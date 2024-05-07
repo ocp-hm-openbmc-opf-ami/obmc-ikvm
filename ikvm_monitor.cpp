@@ -144,7 +144,7 @@ sdbusplus::bus::match_t
         }
         catch (const std::exception& e)
         {
-            log<level::ERR>("Error handling Screenshot trigger signal",
+            log<level::ERR>("Error handling for session monitor signal",
                             entry("ERROR=%s", e.what()));
         }
     };
@@ -156,6 +156,43 @@ sdbusplus::bus::match_t
         std::move(sessionCallback));
 
     return triggerSignal;
+}
+
+sdbusplus::bus::match_t Monitor::sessionTimeout(
+    const std::shared_ptr<sdbusplus::asio::connection> conn)
+{
+    auto timeoutCallback = [&conn](sdbusplus::message_t& msg) {
+        try
+        {
+            std::string interfaceName;
+            boost::container::flat_map<std::string, std::variant<uint64_t>>
+                properties;
+            msg.read(interfaceName, properties);
+
+            if (interfaceName == serviceMgrIface)
+            {
+                auto it = properties.find("SessionTimeOut");
+                if (it != properties.end())
+                {
+                    timeoutValue = std::chrono::duration<uint64_t>(
+                        std::get<uint64_t>(it->second));
+                }
+            }
+        }
+        catch (const std::exception& e)
+        {
+            log<level::ERR>("Error handling for service manager signal",
+                            entry("ERROR=%s", e.what()));
+        }
+    };
+
+    sdbusplus::bus::match_t captureTimeout(
+        static_cast<sdbusplus::bus::bus&>(*conn),
+        "type='signal',member='PropertiesChanged',path='" +
+            serviceMgrKvmObjPath + "',arg0namespace='" + serviceMgrIface + "'",
+        std::move(timeoutCallback));
+
+    return captureTimeout;
 }
 
 void Monitor::createUtilities()

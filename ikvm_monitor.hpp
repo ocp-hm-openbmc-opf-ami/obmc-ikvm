@@ -73,6 +73,16 @@ class Monitor
      */
     sdbusplus::bus::match_t
         sessionMonitor(const std::shared_ptr<sdbusplus::asio::connection> conn);
+
+    /*
+     *
+     *  @brief D-Bus Signal Monitor for Service manager
+     *
+     *  @param[in]conn Pointer to Dbus Connection
+     */
+    sdbusplus::bus::match_t
+        sessionTimeout(const std::shared_ptr<sdbusplus::asio::connection> conn);
+
     /*
      * @brief Create new directory for kvm  in Persistent
      * memory of BMC if not available
