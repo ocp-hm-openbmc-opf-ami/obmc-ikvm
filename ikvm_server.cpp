@@ -358,10 +358,10 @@ void Server::clientGone(rfbClientPtr cl)
     if (server->numClients-- == 1)
     {
         server->input.disconnect();
+	updatePowerSaveMode(1);
         rfbMarkRectAsModified(server->server, 0, 0, server->video.getWidth(),
                               server->video.getHeight());
     }
-    updatePowerSaveMode(1);
 }
 
 enum rfbNewClientAction Server::newClient(rfbClientPtr cl)
@@ -420,12 +420,12 @@ enum rfbNewClientAction Server::newClient(rfbClientPtr cl)
 
     if (!server->numClients++)
     {
+	updatePowerSaveMode(0);
         server->input.connect();
         server->pendingResize = false;
         server->frameCounter = 0;
     }
 
-    updatePowerSaveMode(0);
     return RFB_CLIENT_ACCEPT;
 }
 
