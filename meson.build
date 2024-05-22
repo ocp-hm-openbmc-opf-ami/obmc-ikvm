@@ -47,3 +47,10 @@ fs.copyfile(
         dependency('systemd').get_variable(
             'systemdsystemunitdir')
 )
+fs.copyfile(
+    'start-ipkvm.socket',
+    install: true,
+    install_dir:
+        dependency('systemd').get_variable(
+            'systemdsystemunitdir')
+)
