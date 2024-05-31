@@ -4,10 +4,10 @@ project(
     version: '1.0',
     license: 'GPLv2',
     default_options: [
-        'cpp_std=c++20',
+        'cpp_std=c++23',
         'werror=true',
     ],
-    meson_version: '>=0.58.0',
+    meson_version: '>=1.1.1',
 )
 
 install_data(
@@ -35,6 +35,7 @@ executable(
         dependency('phosphor-dbus-interfaces'),
         dependency('sdbusplus'),
         dependency('threads'),
+        dependency('boost'),
     ],
     install: true
 )
