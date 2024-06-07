@@ -21,7 +21,7 @@ Manager::Manager(const Args& args) :
 
 void Manager::run()
 {
-    monitor.createUtilities();
+    createUtilities();
     auto conn = std::make_shared<sdbusplus::asio::connection>(io);
     conn->request_name(kvmServiceName.c_str());
     sdbusplus::asio::object_server objServer(conn);
@@ -33,6 +33,7 @@ void Manager::run()
     sdbusplus::bus::match_t screenshotMatcher = monitor.screenshotMonitor(conn);
     sdbusplus::bus::match_t triggerSignal = monitor.sessionMonitor(conn);
     sdbusplus::bus::match_t captutreTimeout = monitor.sessionTimeout(conn);
+    sdbusplus::bus::match_t powerStatMatcher = monitor.powerStatMonitor(conn);
 
     std::thread run(serverThread, this);
     std::thread runStatusUpdate(statusUpdateThread, this);

@@ -1,11 +1,11 @@
 #pragma once
 
+#include "ami/include/ikvm_interface.hpp"
+#include "ami/include/ikvm_monitor.hpp"
+#include "ami/include/ikvm_utils.hpp"
 #include "ikvm_args.hpp"
 #include "ikvm_input.hpp"
-#include "ikvm_interface.hpp"
-#include "ikvm_monitor.hpp"
 #include "ikvm_server.hpp"
-#include "ikvm_utils.hpp"
 #include "ikvm_video.hpp"
 
 #include <boost/asio.hpp>

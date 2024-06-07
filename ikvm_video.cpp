@@ -61,18 +61,6 @@ char* Video::getData(unsigned int i)
     return (char*)buffers[i].data;
 }
 
-void Video::screenShot(const std::string& screenShotPath)
-{
-    if (buffersDone.front() < 0)
-    {
-        return;
-    }
-    std::ofstream screenshot(screenShotPath, std::ios::out | std::ios::binary);
-    screenshot.write((char*)buffers[buffersDone.front()].data,
-                     buffers[buffersDone.front()].size);
-    screenshot.close();
-}
-
 void Video::getFrame()
 {
     int rc(0);
@@ -422,13 +410,6 @@ void Video::resize()
             xyz::openbmc_project::Common::Device::ReadFailure::
                 CALLOUT_DEVICE_PATH(path.c_str()));
     }
-}
-
-void Video::formatChange(int newformat)
-{
-    stop();
-    setFormat(newformat);
-    start();
 }
 
 void Video::start()

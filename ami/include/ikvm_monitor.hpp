@@ -1,5 +1,5 @@
 /*
- * ****************************************************************
+ * ****************************************************************************
  *
  * KVM server Monitor for dbus async events
  * Filename : ikvm_monitor.hpp
@@ -8,12 +8,12 @@
  *
  * Author: Amlana Bhuyan [amlanab@ami.com]
  *
- * *****************************************************************
+ * ****************************************************************************
  */
 
 #pragma once
 
-#include "ikvm_utils.hpp"
+#include "ami/include/ikvm_utils.hpp"
 
 #include <boost/container/flat_map.hpp>
 #include <sdbusplus/asio/connection.hpp>
@@ -84,11 +84,13 @@ class Monitor
         sessionTimeout(const std::shared_ptr<sdbusplus::asio::connection> conn);
 
     /*
-     * @brief Create new directory for kvm  in Persistent
-     * memory of BMC if not available
+     *
+     *  @brief D-Bus Signal Monitor for Host Power Status
+     *
+     *  @param[in]conn Pointer to Dbus Connection
      */
-    bool isDir(const std::string& path);
-    void createUtilities();
+    sdbusplus::bus::match_t
+        powerStatMonitor(std::shared_ptr<sdbusplus::asio::connection> conn);
 };
 
 } // namespace ikvm

@@ -1,5 +1,5 @@
 /*
- * ****************************************************************
+ * ****************************************************************************
  *
  * KVM server Monitor for dbus async events
  * Filename : ikvm_monitor.cpp
@@ -8,10 +8,10 @@
  *
  * Author: Amlana Bhuyan [amlanab@ami.com]
  *
- * *****************************************************************
+ * ****************************************************************************
  */
 
-#include "ikvm_monitor.hpp"
+#include "ami/include/ikvm_monitor.hpp"
 
 #include "ikvm_server.hpp"
 
@@ -195,26 +195,54 @@ sdbusplus::bus::match_t Monitor::sessionTimeout(
     return captureTimeout;
 }
 
-void Monitor::createUtilities()
+sdbusplus::bus::match_t
+    Monitor::powerStatMonitor(std::shared_ptr<sdbusplus::asio::connection> conn)
 {
-    isDir(bsodDir);
-}
-
-bool Monitor::isDir(const std::string& path)
-{
-    try
-    {
-        if (!(fs::is_directory(path.c_str())))
+    auto pwrStatCallback = [&conn, this](sdbusplus::message_t& msg) {
+        try
         {
-            fs::create_directory(path.c_str());
+            std::string interfaceName;
+            boost::container::flat_map<std::string, std::variant<std::string>>
+                pwrStatProperty;
+            msg.read(interfaceName, pwrStatProperty);
+
+            for (const auto& entry : pwrStatProperty)
+            {
+                if (entry.first == "CurrentPowerState")
+                {
+                    if (std::get<std::string>(entry.second).find("Off") !=
+                        std::string::npos)
+                    {
+                        hostPowerState = "Off";
+                    }
+                    else if (std::get<std::string>(entry.second).find("On") !=
+                             std::string::npos)
+                    {
+                        hostPowerState = "On";
+                    }
+                }
+            }
         }
-    }
-    catch (const std::exception& e)
-    {
-        log<level::ERR>("Failed to create folder", entry("ERROR=%s", e.what()));
-        return false;
-    }
-    return true;
+        catch (const sdbusplus::exception::SdBusError& e)
+        {
+            log<level::ERR>(
+                "Failed to handle hostPowerStatusMonitor D-Bus signal",
+                entry("ERROR=%s", e.what()));
+        }
+        catch (const std::exception& e)
+        {
+            log<level::ERR>("Error handling hostPowerStatusMonitor",
+                            entry("ERROR=%s", e.what()));
+        }
+    };
+
+    sdbusplus::bus::match_t powerStatMatcher(
+        static_cast<sdbusplus::bus::bus&>(*conn),
+        "type='signal',member='PropertiesChanged',path='" + pwrStatObjPath +
+            "'," + "arg0namespace='" + pwrStatIface + "'",
+        std::move(pwrStatCallback));
+
+    return powerStatMatcher;
 }
 
 } // namespace ikvm

@@ -16,18 +16,19 @@ install_data(
     install_dir: get_option('bindir')
 )
 
+# Includes neccessary subdirectory build
+subdir('ami')
+
 executable(
     'obmc-ikvm',
     [
         'ikvm_args.cpp',
         'ikvm_input.cpp',
-        'ikvm_interface.cpp',
         'ikvm_manager.cpp',
-        'ikvm_monitor.cpp',
         'ikvm_server.cpp',
-        'ikvm_utils.cpp',
         'ikvm_video.cpp',
         'obmc-ikvm.cpp',
+        ami_sources,
     ],
     dependencies: [
         dependency('libvncserver'),
@@ -43,13 +44,6 @@ executable(
 fs = import('fs')
 fs.copyfile(
     'start-ipkvm.service',
-    install: true,
-    install_dir:
-        dependency('systemd').get_variable(
-            'systemdsystemunitdir')
-)
-fs.copyfile(
-    'start-ipkvm.socket',
     install: true,
     install_dir:
         dependency('systemd').get_variable(

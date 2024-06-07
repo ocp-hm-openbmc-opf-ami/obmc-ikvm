@@ -13,19 +13,19 @@ namespace ikvm
 /*
  * data type to hold output report from USB device
  * as of now the first three bits are used by USB
- * device.
+ * device. (AMI Extension)
  */
 typedef union
 {
     uint8_t Byte;
     struct
     {
-        uint8_t NumLock : 1;
-        uint8_t CapsLock : 1;
-        uint8_t ScrollLock : 1;
-        uint8_t Compose : 1;
-        uint8_t Kana : 1;
-        uint8_t Constant : 3;
+        uint8_t NumLock:1;
+        uint8_t CapsLock:1;
+        uint8_t ScrollLock:1;
+        uint8_t Compose:1;
+        uint8_t Kana:1;
+        uint8_t Constant:3;
     };
 } LEDData_t;
 
@@ -81,7 +81,7 @@ class Input
     /* @brief Sends a wakeup data packet to the USB input device */
     void sendWakeupPacket();
 
-    /* @brief getter method for keyboardLedState  */
+    /* @brief getter method for keyboardLedState (AMI Extension) */
     int getkeyboardLedState();
 
   private:
@@ -129,7 +129,7 @@ class Input
 
     /*
      * @brief Reads the Host keyboard-output report
-     * & updates the hostkeyboardLEDState.
+     * & updates the hostkeyboardLEDState. (AMI Extension)
      */
     int readKeyBoardOutReport();
 
@@ -150,7 +150,7 @@ class Input
     std::string pointerPath;
     /* @brief Name of UDC */
     std::string udcName;
-    /* @brief Holds the KeyboardLED state of Host */
+    /* @brief Holds the KeyboardLED state of Host (AMI Extension) */
     LEDData_t keyboardLedState;
     /*
      * @brief Mapping of RFB key code to report data index to keep track

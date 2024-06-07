@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ami/include/ikvm_utils.hpp"
 #include "ikvm_input.hpp"
 
 #include <linux/videodev2.h>
@@ -40,11 +41,6 @@ class Video
      */
     char* getData();
     char* getData(unsigned int i);
-    /*
-     * @brief captures video frame and
-     * stores as an image(.jpeg) in BMC local memory(screenShotPath).
-     */
-    void screenShot(const std::string& screenShotPath);
 
     /* @brief Performs read to grab latest video frame */
     void getFrame();
@@ -58,8 +54,6 @@ class Video
     bool needsResize();
     /* @brief Performs the resize and re-allocates framebuffer */
     void resize();
-    /* @brief Performs the video frame jpeg-capture format change operation*/
-    void formatChange(int newformat);
     /* @brief Starts streaming from the video device */
     void start();
     /* @brief Stops streaming from the video device */
@@ -203,6 +197,25 @@ class Video
     static const int samplesPerPixel;
     /* @brief done buffer storage */
     std::deque<int> buffersDone;
+    /*
+     * =============================================
+     * <<<<<<<<<<<<< AMI Extensions >>>>>>>>>>>>>>>>
+     * =============================================
+     */
+    /*
+     * @brief Gets the video Input Signal information
+     *
+     * @return Host video Signal status
+     */
+    uint32_t getSignalStatus();
+    /* @brief Performs the video frame jpeg-capture format change operation*/
+    void formatChange(int newformat);
+    /*
+     * @brief captures video frame and
+     * stores as an image(.jpeg) in BMC local memory(screenShotPath).
+     * @param[in] screenShotPath : path to store Image
+     */
+    void screenShot(const std::string& screenShotPath);
 
   private:
     void qbuf(int i);
@@ -213,8 +226,7 @@ class Video
      */
     struct Buffer
     {
-        Buffer() : data(nullptr), queued(false), payload(0), size(0)
-        {}
+        Buffer() : data(nullptr), queued(false), payload(0), size(0) {}
         ~Buffer() = default;
         Buffer(const Buffer&) = default;
         Buffer& operator=(const Buffer&) = default;

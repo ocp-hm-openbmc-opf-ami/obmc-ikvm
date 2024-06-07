@@ -1,8 +1,8 @@
 #pragma once
 
+#include "ami/include/ikvm_utils.hpp"
 #include "ikvm_args.hpp"
 #include "ikvm_input.hpp"
-#include "ikvm_utils.hpp"
 #include "ikvm_video.hpp"
 
 namespace ikvm
@@ -115,7 +115,7 @@ class Server
     void doResize();
 
     /*
-     * @brief Updates USB Power Save Mode Status
+     * @brief Updates USB Power Save Mode Status. (AMI Extension)
      *
      * @param[in] status 0 for disable 1 for enable
      */

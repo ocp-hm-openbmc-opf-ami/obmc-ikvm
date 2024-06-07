@@ -11,14 +11,12 @@
 
 #define ROUND_DOWN(x, r) ((x) & ~((r)-1))
 
-#define DEFAULT_IP "~"           // Loopback IP address
-#define USER_NAME "local"        // Default user
-#define KVM 0                    // KVM session type
-#define PRIV_LEVEL_ADMIN 0x04    // Privilege level for admin
-#define KVM_DEFAULT_USER_ID 0    // Default user ID
-#define LOGOUT 1                 // Reson for session unregister
-
-#define DBUS_PROPERTIES_INTERFACE "org.freedesktop.DBus.Properties"
+#define DEFAULT_IP "~"        // Loopback IP address
+#define USER_NAME "local"     // Default user
+#define KVM 0                 // KVM session type
+#define PRIV_LEVEL_ADMIN 0x04 // Privilege level for admin
+#define KVM_DEFAULT_USER_ID 0 // Default user ID
+#define LOGOUT 1              // Reson for session unregister
 
 namespace ikvm
 {
@@ -358,7 +356,7 @@ void Server::clientGone(rfbClientPtr cl)
     if (server->numClients-- == 1)
     {
         server->input.disconnect();
-	updatePowerSaveMode(1);
+        updatePowerSaveMode(1);
         rfbMarkRectAsModified(server->server, 0, 0, server->video.getWidth(),
                               server->video.getHeight());
     }
@@ -420,7 +418,7 @@ enum rfbNewClientAction Server::newClient(rfbClientPtr cl)
 
     if (!server->numClients++)
     {
-	updatePowerSaveMode(0);
+        updatePowerSaveMode(0);
         server->input.connect();
         server->pendingResize = false;
         server->frameCounter = 0;
@@ -459,20 +457,6 @@ void Server::doResize()
     }
 
     rfbReleaseClientIterator(it);
-}
-
-void Server::updatePowerSaveMode(int status)
-{
-    if ((status == 0) || (status == 1))
-    {
-        auto bus = sdbusplus::bus::new_system();
-        auto methodCall = bus.new_method_call(
-            "xyz.openbmc_project.Settings",
-            "/xyz/openbmc_project/logging/settings", "xyz.openbmc_project.USB",
-            "SetUSBPowerSaveMode");
-        methodCall.append(status);
-        bus.call(methodCall);
-    }
 }
 
 } // namespace ikvm
