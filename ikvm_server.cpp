@@ -320,16 +320,6 @@ void Server::clientGone(rfbClientPtr cl)
     Server* server = (Server*)cl->screen->screenData;
     ClientData* cd = (ClientData*)cl->clientData;
 
-    // Find the session ID in the vector
-    auto it = std::find(activeSessionIDs.begin(), activeSessionIDs.end(),
-                        cd->sessionId);
-
-    // If the session ID is found, remove it from the vector
-    if (it != activeSessionIDs.end())
-    {
-        activeSessionIDs.erase(it);
-    }
-
     /* Method call for unregistering */
     for (const auto& id : activeSessionIDs)
     {
