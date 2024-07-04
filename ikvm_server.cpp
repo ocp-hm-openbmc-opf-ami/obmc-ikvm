@@ -363,6 +363,8 @@ enum rfbNewClientAction Server::newClient(rfbClientPtr cl)
 
     ClientData* cd = (ClientData*)cl->clientData;
 
+    updatePowerSaveMode(0); //Disable power saving mode
+    
     /* Method call for Registering */
     auto busRegister = sdbusplus::bus::new_default_system();
     auto m = busRegister.new_method_call(smgrService.c_str(),
@@ -408,7 +410,6 @@ enum rfbNewClientAction Server::newClient(rfbClientPtr cl)
 
     if (!server->numClients++)
     {
-        updatePowerSaveMode(0);
         server->input.connect();
         server->pendingResize = false;
         server->frameCounter = 0;
