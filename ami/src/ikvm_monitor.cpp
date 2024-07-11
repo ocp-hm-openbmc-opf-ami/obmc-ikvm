@@ -115,7 +115,7 @@ sdbusplus::bus::match_t
         {
             sessionRet updatedlist;
             std::string interfaceName;
-            std::vector<uint16_t> UpdatedSessionIDs;
+            std::vector<uint8_t> UpdatedSessionIDs;
 
             boost::container::flat_map<std::string, propertyValue>
                 sessionProperty;
@@ -131,7 +131,7 @@ sdbusplus::bus::match_t
                         for (const auto& tuple : updatedlist)
                         {
                             // Extract session ID
-                            uint16_t sessionID = std::get<0>(tuple);
+                            uint8_t sessionID = std::get<0>(tuple);
                             UpdatedSessionIDs.push_back(sessionID);
                         }
                         // Update active session IDs with the updated session

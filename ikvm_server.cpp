@@ -16,7 +16,8 @@
 #define KVM 0                 // KVM session type
 #define PRIV_LEVEL_ADMIN 0x04 // Privilege level for admin
 #define KVM_DEFAULT_USER_ID 0 // Default user ID
-#define LOGOUT 1              // Reson for session unregister
+#define LOGOUT 1              // Reason for session unregister
+#define MOUNTING_METHOD ""    // Empty mounting method
 
 namespace ikvm
 {
@@ -375,10 +376,11 @@ enum rfbNewClientAction Server::newClient(rfbClientPtr cl)
     uint8_t sessionType = KVM;
     uint8_t privilege = PRIV_LEVEL_ADMIN;
     uint8_t userId = KVM_DEFAULT_USER_ID;
+    std::string mountingMethod = MOUNTING_METHOD;
 
     propertyValue propertyval;
 
-    m.append(cd->sessionId, ipAdress, userName, sessionType, privilege, userId);
+    m.append(cd->sessionId, ipAdress, userName, sessionType, privilege, userId, mountingMethod);
 
     auto reply = busRegister.call(m);
     bool status = false;

@@ -74,7 +74,7 @@ extern const std::string serviceMgrKvmObjPath;
 extern const std::string serviceMgrIface;
 
 using sessionInfo =
-    std::tuple<uint16_t, std::string, std::string, uint8_t, uint8_t, uint8_t>;
+    std::tuple<uint8_t, std::string, std::string, uint8_t, uint8_t, uint8_t, std::string>;
 using sessionRet = std::vector<sessionInfo>;
 using propertyValue = std::variant<sessionRet>;
 
