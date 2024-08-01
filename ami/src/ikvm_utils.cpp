@@ -32,12 +32,14 @@ const std::string bsodAsJpeg = "/etc/bsod/screenShotBSOD.jpeg";
 const std::string bsodDir = "/etc/bsod";
 
 std::shared_ptr<sdbusplus::asio::dbus_interface> kvmScrnshotIface = nullptr;
-std::chrono::duration<uint64_t> timeoutValue = std::chrono::seconds(900);
+std::chrono::duration<uint64_t> timeoutValue = std::chrono::seconds(DEFAULT_TIMEOUT_VALUE);
 const std::string smgrService = "xyz.openbmc_project.SessionManager";
 const std::string smgrObjPath = "/xyz/openbmc_project/SessionManager";
 const std::string smgrIface = "xyz.openbmc_project.SessionManager";
 const std::string smgrKVMIface = "xyz.openbmc_project.SessionManager.Kvm";
 
+const std::string serviceMgrService =
+    "xyz.openbmc_project.Control.Service.Manager";
 const std::string serviceMgrKvmObjPath =
     "/xyz/openbmc_project/control/service/start_2dipkvm";
 const std::string serviceMgrIface =
@@ -62,6 +64,7 @@ void createUtilities()
 {
     isDir(bsodDir);
     powerStatusInit();
+    sessionTimeout();
 }
 
 bool isDir(const std::string& path)
@@ -143,6 +146,30 @@ void powerStatusInit()
         hostPowerState = "Unknown";
         return;
     }
+}
+
+void sessionTimeout()
+{
+    auto busSessTimoutValue = sdbusplus::bus::new_default_system();
+    auto msgSessTimoutValue = busSessTimoutValue.new_method_call(
+        serviceMgrService.c_str(), serviceMgrKvmObjPath.c_str(),
+        DBUS_PROPERTIES_INTERFACE, "Get");
+    msgSessTimoutValue.append(serviceMgrIface.c_str(), "SessionTimeOut");
+
+    auto reply = busSessTimoutValue.call(msgSessTimoutValue);
+
+    if (reply.is_method_error())
+    {
+        log<level::ERR>("D-Bus method call error.");
+        return;
+    }
+
+    // Extract the value from the reply
+    std::variant<uint64_t> sessionTimeoutValue;
+    reply.read(sessionTimeoutValue);
+
+    uint64_t timeoutSeconds = std::get<uint64_t>(sessionTimeoutValue);
+    timeoutValue = std::chrono::seconds(timeoutSeconds);
 }
 
 } // namespace ikvm

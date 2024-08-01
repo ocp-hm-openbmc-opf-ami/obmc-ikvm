@@ -62,6 +62,7 @@ extern std::shared_ptr<sdbusplus::asio::dbus_interface> kvmScrnshotIface;
 
 /*@brief set the time duration for session timeout*/
 extern std::chrono::duration<uint64_t> timeoutValue;
+#define DEFAULT_TIMEOUT_VALUE 86401
 
 /*@brief session manager DBus- details*/
 extern const std::string smgrService;
@@ -70,11 +71,12 @@ extern const std::string smgrIface;
 extern const std::string smgrKVMIface;
 
 /*@brief service manager DBus- details*/
+extern const std::string serviceMgrService;
 extern const std::string serviceMgrKvmObjPath;
 extern const std::string serviceMgrIface;
 
-using sessionInfo =
-    std::tuple<uint8_t, std::string, std::string, uint8_t, uint8_t, uint8_t, std::string>;
+using sessionInfo = std::tuple<uint8_t, std::string, std::string, uint8_t,
+                               uint8_t, uint8_t, std::string>;
 using sessionRet = std::vector<sessionInfo>;
 using propertyValue = std::variant<sessionRet>;
 
@@ -114,5 +116,10 @@ bool isDir(const std::string& path);
  * @brief Gets the initial value of hostPowerState from external service.
  */
 void powerStatusInit();
+
+/*
+ * @brief Gets the updated session timeout value from external service..
+ */
+void sessionTimeout();
 
 } // namespace ikvm
