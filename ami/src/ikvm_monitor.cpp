@@ -245,4 +245,46 @@ sdbusplus::bus::match_t
     return powerStatMatcher;
 }
 
+sdbusplus::bus::match_t Monitor::monitoringKVMService(
+    const std::shared_ptr<sdbusplus::asio::connection> conn)
+{
+    auto serviceStatusCallback = [&conn](sdbusplus::message_t& msg) {
+        try
+        {
+            std::string interfaceName;
+            boost::container::flat_map<std::string, std::variant<bool, uint64_t>>
+                properties;
+            msg.read(interfaceName, properties);
+
+            if (interfaceName == serviceMgrIface)
+            {
+                // Check for the Enabled property
+                auto enabledIt = properties.find("Enabled");
+                if (enabledIt != properties.end())
+                {
+                    bool enabled = std::get<bool>(enabledIt->second);
+                    if (!enabled)
+                    {
+                        // Update the KVM status
+                        kvmStatus = true;
+                    }
+                }
+            }
+        }
+        catch (const std::exception& e)
+        {
+            log<level::ERR>("Error handling service manager signal",
+                            entry("ERROR=%s", e.what()));
+        }
+    };
+
+    sdbusplus::bus::match_t monitorKvmService(
+        static_cast<sdbusplus::bus::bus&>(*conn),
+        "type='signal',member='PropertiesChanged',path='" +
+            serviceMgrKvmObjPath + "',arg0namespace='" + serviceMgrIface + "'",
+        std::move(serviceStatusCallback));
+
+    return monitorKvmService;
+}
+
 } // namespace ikvm

@@ -53,6 +53,8 @@ const std::string pwrStatObjPath = "/xyz/openbmc_project/state/chassis0";
 const std::string pwrStatIface = "xyz.openbmc_project.State.Chassis";
 std::string hostPowerState = "Unknown";
 
+bool kvmStatus = false;
+
 const char* NO_SIGNAL_IMG_PATH = "/etc/NO_SIGNAL.jpg";
 const char* POWER_OFF_IMG_PATH = "/etc/POWER_OFF.jpg";
 

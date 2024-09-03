@@ -143,6 +143,14 @@ void Server::sendFrame()
             continue;
         }
 
+        /* Disconnecting the clients immediately when KVM has been disabled from
+         * WebUI*/
+        if (kvmStatus)
+        {
+            rfbCloseClient(cl);
+            continue;
+        }
+
         /* Disconnect the clients when unregister happen from other services*/
         if (cd->sessionId)
         {

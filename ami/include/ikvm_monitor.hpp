@@ -91,6 +91,16 @@ class Monitor
      */
     sdbusplus::bus::match_t
         powerStatMonitor(std::shared_ptr<sdbusplus::asio::connection> conn);
+
+    /*
+     *
+     *  @brief D-Bus Signal Monitor for KVM status
+     *
+     *  @param[in]conn Pointer to Dbus Connection
+     */
+    sdbusplus::bus::match_t
+        monitoringKVMService(std::shared_ptr<sdbusplus::asio::connection> conn);
+
 };
 
 } // namespace ikvm
