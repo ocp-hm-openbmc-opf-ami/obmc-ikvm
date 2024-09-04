@@ -29,3 +29,13 @@ fs.copyfile(
         dependency('systemd').get_variable(
             'systemdsystemunitdir')
 )
+
+# Install the Drop-in file
+fs.copyfile(
+    'misc/10_ExecStop_Session_Clear.conf',
+    install: true,
+    install_dir:
+        dependency('systemd').get_variable(
+            'systemdsystemunitdir')
+            /'start-ipkvm.service.d'
+)
