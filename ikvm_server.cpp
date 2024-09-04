@@ -48,7 +48,7 @@ Server::Server(const Args& args, Input& i, Video& v) :
         video.getHeight() * video.getWidth() * Video::bytesPerPixel, 0);
 
     server->screenData = this;
-    server->desktopName = "OpenBMC IKVM";
+    server->desktopName = "OneTree IKVM";
     server->frameBuffer = framebuffer.data();
     server->newClientHook = newClient;
     server->cursor = rfbMakeXCursor(cursorWidth, cursorHeight, (char*)cursor,
@@ -172,19 +172,29 @@ void Server::sendFrame()
             continue;
         }
 
+        if (!(data[video.getFrameSize(i) - 2] == 255 &&
+              data[video.getFrameSize(i) - 1] == 217))
+        {
+            video.releaseFrames();
+            video.getFrame();
+            continue;
+        }
+
         if (calcFrameCRC)
         {
             if (frame_crc == -1)
             {
                 /* JFIF header contains some varying data so skip it for
                  * checksum calculation */
-                frame_crc = boost::crc<32, 0x04C11DB7, 0xFFFFFFFF, 0xFFFFFFFF,
-                                       true, true>(data + 0x30,
-                                                   video.getFrameSize() - 0x30);
+                frame_crc =
+                    boost::crc<32, 0x04C11DB7, 0xFFFFFFFF, 0xFFFFFFFF, true,
+                               true>(data + 0x30, video.getFrameSize(i) - 0x30);
             }
 
             if (cd->last_crc == frame_crc)
             {
+                video.releaseFrames();
+                video.getFrame();
                 continue;
             }
 

@@ -8,7 +8,7 @@
 namespace ikvm
 {
 Args::Args(int argc, char* argv[]) :
-    frameRate(60), subsampling(0), format(0), calcFrameCRC{false},
+    frameRate(30), subsampling(0), format(0), calcFrameCRC{false},
     commandLine(argc, argv)
 {
     int option;
@@ -36,7 +36,7 @@ Args::Args(int argc, char* argv[]) :
                 break;
             case 'm':
                 format = (int)strtol(optarg, NULL, 0);
-                if (format < 0 || format > 2 || format == 1)
+                if (format != 0 && format != 2)
                     format = 0;
                 break;
             case 'h':
@@ -58,11 +58,6 @@ Args::Args(int argc, char* argv[]) :
                 calcFrameCRC = true;
                 break;
         }
-    }
-    /* Unsupported for partial frame compression types */
-    if (format == 2 && calcFrameCRC == true)
-    {
-        calcFrameCRC = false;
     }
 }
 
