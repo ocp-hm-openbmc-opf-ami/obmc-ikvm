@@ -120,6 +120,9 @@ class Server
      */
     static void updatePowerSaveMode(int status);
 
+    static void handleKVMServiceDisabled(rfbScreenInfoPtr rfbScreen);
+    static void sendDisconnectMessageToClients(rfbScreenInfoPtr rfbScreen, const char *disconnectMessage);
+
     /* @brief Boolean to indicate if a resize operation is on-going */
     bool pendingResize;
     /* @brief Number of frames handled since a client connected */
