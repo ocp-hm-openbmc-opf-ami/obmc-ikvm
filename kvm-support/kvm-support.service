@@ -1,0 +1,14 @@
+[Unit]
+Description= support Service for KVM
+ConditionPathIsMountPoint=/sys/kernel/config
+
+[Service]
+Restart=always
+ExecStart=/usr/bin/kvm-support
+SyslogIdentifier=kvm-support
+Restart=always
+RestartSec=5
+BusName=xyz.openbmc_project.KvmSupport
+
+[Install]
+WantedBy=multi-user.target
