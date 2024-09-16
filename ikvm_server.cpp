@@ -8,6 +8,7 @@
 #include <phosphor-logging/elog.hpp>
 #include <phosphor-logging/log.hpp>
 #include <xyz/openbmc_project/Common/error.hpp>
+#include <arpa/inet.h> // For htonl/htons
 
 #define ROUND_DOWN(x, r) ((x) & ~((r) - 1))
 
@@ -320,29 +321,6 @@ void Server::sendFrame()
         video.releaseFrames();
 }
 
-/* Call this function when KVM service is disabled */
-void ikvm::Server::handleKVMServiceDisabled(rfbScreenInfoPtr rfbScreen)
-{
-    printf("Client supported encodings:\n");
-
-    const char *disconnectMessage = "Z";
-    sendDisconnectMessageToClients(rfbScreen, disconnectMessage);
-}
-
-void ikvm::Server::sendDisconnectMessageToClients(rfbScreenInfoPtr rfbScreen, const char *disconnectMessage)
-{
-    int len = strlen(disconnectMessage);
-    rfbSendServerCutText(rfbScreen, (char *)disconnectMessage, len);
-
-    // Iterate over all clients and close their connections
-    rfbClientPtr cl;
-    rfbClientIteratorPtr iterator = rfbGetClientIterator(rfbScreen);
-    while ((cl = rfbClientIteratorNext(iterator)) != NULL) {
-        printf("Disconnecting client\n"); fflush(stdout);
-        rfbCloseClient(cl);  // Close client after sending the message
-    }
-    rfbReleaseClientIterator(iterator);
-}
 void Server::clientFramebufferUpdateRequest(
     rfbClientPtr cl, rfbFramebufferUpdateRequestMsg* furMsg)
 {

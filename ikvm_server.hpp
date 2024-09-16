@@ -120,9 +120,12 @@ class Server
      */
     static void updatePowerSaveMode(int status);
 
+    /* Handling messages to clients*/
+    static void sendDisconnectMessageToClient(rfbClientPtr client, const std::string& message);
     static void handleKVMServiceDisabled(rfbScreenInfoPtr rfbScreen);
-    static void sendDisconnectMessageToClients(rfbScreenInfoPtr rfbScreen, const char *disconnectMessage);
+    static void sendDisconnectMessageToClients(rfbScreenInfoPtr rfbScreen, const std::string& disconnectMessage);
 
+    static bool isCustomViewer;
     /* @brief Boolean to indicate if a resize operation is on-going */
     bool pendingResize;
     /* @brief Number of frames handled since a client connected */
