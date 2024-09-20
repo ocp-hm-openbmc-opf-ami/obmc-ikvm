@@ -32,7 +32,8 @@ const std::string bsodAsJpeg = "/etc/bsod/screenShotBSOD.jpeg";
 const std::string bsodDir = "/etc/bsod";
 
 std::shared_ptr<sdbusplus::asio::dbus_interface> kvmScrnshotIface = nullptr;
-std::chrono::duration<uint64_t> timeoutValue = std::chrono::seconds(DEFAULT_TIMEOUT_VALUE);
+std::chrono::duration<uint64_t> timeoutValue =
+    std::chrono::seconds(DEFAULT_TIMEOUT_VALUE);
 const std::string smgrService = "xyz.openbmc_project.SessionManager";
 const std::string smgrObjPath = "/xyz/openbmc_project/SessionManager";
 const std::string smgrIface = "xyz.openbmc_project.SessionManager";

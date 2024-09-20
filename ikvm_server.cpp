@@ -9,7 +9,7 @@
 #include <phosphor-logging/log.hpp>
 #include <xyz/openbmc_project/Common/error.hpp>
 
-#define ROUND_DOWN(x, r) ((x) & ~((r)-1))
+#define ROUND_DOWN(x, r) ((x) & ~((r) - 1))
 
 #define DEFAULT_IP "~"        // Loopback IP address
 #define USER_NAME "local"     // Default user
@@ -374,13 +374,13 @@ enum rfbNewClientAction Server::newClient(rfbClientPtr cl)
 
     ClientData* cd = (ClientData*)cl->clientData;
 
-    updatePowerSaveMode(0); //Disable power saving mode
-    
+    updatePowerSaveMode(0); // Disable power saving mode
+
     /* Method call for Registering */
     auto busRegister = sdbusplus::bus::new_default_system();
-    auto m = busRegister.new_method_call(smgrService.c_str(),
-                                         smgrObjPath.c_str(), smgrIface.c_str(),
-                                         "SessionRegister");
+    auto m =
+        busRegister.new_method_call(smgrService.c_str(), smgrObjPath.c_str(),
+                                    smgrIface.c_str(), "SessionRegister");
     std::string ipAdress = DEFAULT_IP;
     std::string userName = USER_NAME;
     uint8_t sessionType = KVM;
@@ -390,7 +390,8 @@ enum rfbNewClientAction Server::newClient(rfbClientPtr cl)
 
     propertyValue propertyval;
 
-    m.append(cd->sessionId, ipAdress, userName, sessionType, privilege, userId, mountingMethod);
+    m.append(cd->sessionId, ipAdress, userName, sessionType, privilege, userId,
+             mountingMethod);
 
     auto reply = busRegister.call(m);
     bool status = false;

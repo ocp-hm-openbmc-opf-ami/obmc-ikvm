@@ -101,8 +101,8 @@ void Manager::statusUpdateThread(Manager* manager)
 
         if (manager->video.needsResize())
         {
-            manager->videoDone = false;
             manager->waitServer();
+            manager->videoDone = false;
             manager->video.resize();
             manager->server.resize();
             manager->setVideoDone();

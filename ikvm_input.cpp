@@ -25,9 +25,9 @@ using namespace sdbusplus::xyz::openbmc_project::Common::File::Error;
 
 Input::Input(const std::string& kbdPath, const std::string& ptrPath,
              const std::string& udc) :
-    keyboardFd(-1),
-    pointerFd(-1), keyboardReport{0}, pointerReport{0}, keyboardPath(kbdPath),
-    pointerPath(ptrPath), udcName(udc), keyboardLedState{INITIAL_LED_STATE}
+    keyboardFd(-1), pointerFd(-1), keyboardReport{0}, pointerReport{0},
+    keyboardPath(kbdPath), pointerPath(ptrPath), udcName(udc),
+    keyboardLedState{INITIAL_LED_STATE}
 {
     hidUdcStream.exceptions(std::ofstream::failbit | std::ofstream::badbit);
     hidUdcStream.open(hidUdcPath, std::ios::out | std::ios::app);
@@ -108,8 +108,8 @@ void Input::connect()
 
     if (!keyboardPath.empty())
     {
-        keyboardFd = open(keyboardPath.c_str(),
-                          O_RDWR | O_CLOEXEC | O_NONBLOCK);
+        keyboardFd =
+            open(keyboardPath.c_str(), O_RDWR | O_CLOEXEC | O_NONBLOCK);
         if (keyboardFd < 0)
         {
             log<level::ERR>("Failed to open input device",
@@ -268,9 +268,9 @@ void Input::pointerEvent(int buttonMask, int x, int y, rfbClientPtr cl)
     }
     else
     {
-        input->pointerReport[0] = ((buttonMask & 0x4) >> 1) |
-                                  ((buttonMask & 0x2) << 1) |
-                                  (buttonMask & 0x1);
+        input->pointerReport[0] =
+            ((buttonMask & 0x4) >> 1) | ((buttonMask & 0x2) << 1) |
+            (buttonMask & 0x1);
         input->pointerReport[5] = 0;
     }
 

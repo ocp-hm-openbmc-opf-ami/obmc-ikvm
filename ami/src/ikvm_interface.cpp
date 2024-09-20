@@ -25,16 +25,16 @@ void Interface::addInterfaces()
 
 void Interface::addScreenshotInterface()
 {
-    kvmScrnshotIface = server.add_interface(kvmObjPath.c_str(),
-                                            scrnshotInterface.c_str());
+    kvmScrnshotIface =
+        server.add_interface(kvmObjPath.c_str(), scrnshotInterface.c_str());
 
     kvmScrnshotIface->register_property(
         "Trigger", true, sdbusplus::asio::PropertyPermission::readOnly);
 
-    kvmScrnshotIface->register_method("TriggerScreenshot",
-                                      [this](int scrnshotReqType) {
-        return Interface::TriggerScreenshot(scrnshotReqType);
-    });
+    kvmScrnshotIface->register_method(
+        "TriggerScreenshot", [this](int scrnshotReqType) {
+            return Interface::TriggerScreenshot(scrnshotReqType);
+        });
 
     kvmScrnshotIface->initialize();
 }
