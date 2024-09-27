@@ -120,10 +120,54 @@ class Server
      */
     static void updatePowerSaveMode(int status);
 
-    /* Handling messages to clients*/
-    static void sendDisconnectMessageToClient(rfbClientPtr client, const std::string& message);
+    /*
+     * @brief Handle the KVM service disabled scenario by sending the
+     * appropriate disconnect message.
+     *
+     * @param[in] rfbScreen Pointer to the screen info structure for handling
+     * all connected clients.
+     */
     static void handleKVMServiceDisabled(rfbScreenInfoPtr rfbScreen);
-    static void sendDisconnectMessageToClients(rfbScreenInfoPtr rfbScreen, const std::string& disconnectMessage);
+
+    /*
+     * @brief Send a disconnect message to all connected clients in IVTP format.
+     *
+     * @param[in] rfbScreen  Pointer to the screen info structure containing
+     * client information.
+     * @param[in] stopReason Reason code for stopping the session (e.g., service
+     * disabled, timeout, etc.).
+     * @param[in] status     Status code providing additional context for the
+     * stop (e.g., success, failure, etc.).
+     */
+    static void sendDisconnectMessageToClients(rfbScreenInfoPtr rfbScreen,
+                                               unsigned short stopReason,
+                                               unsigned short status);
+
+    /*
+     * @brief Send an IVTP message wrapped in a ServerCutText message to a
+     * specific client.
+     *
+     * @param[in] client     Pointer to the client structure to which the
+     * message is sent.
+     * @param[in] ivtpPacket Pointer to the IVTP packet to be sent.
+     * @param[in] ivtpLength Length of the IVTP packet.
+     */
+    static void sendIVTPMessageToClient(rfbClientPtr client,
+                                        const unsigned char* ivtpPacket,
+                                        unsigned int ivtpLength);
+
+    /*
+     * @brief Create an IVTP packet for session stop.
+     *
+     * @param[in] stopReason Reason code for stopping the session (e.g., service
+     * disabled, timeout, etc.).
+     * @param[in] status     Status code providing additional context for the
+     * stop (e.g., success, failure, etc.).
+     *
+     * @return A vector containing the IVTP packet.
+     */
+    static std::vector<unsigned char> createIVTPStopSessionPacket(
+        unsigned short stopReason, unsigned short status);
 
     static bool isCustomViewer;
     /* @brief Boolean to indicate if a resize operation is on-going */
