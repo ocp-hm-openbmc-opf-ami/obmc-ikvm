@@ -279,13 +279,13 @@ sdbusplus::bus::match_t Monitor::monitoringKvmStatus(
         }
     };
 
-    sdbusplus::bus::match_t monitorKvmService(
+    sdbusplus::bus::match_t monitorServiceMgr(
         static_cast<sdbusplus::bus::bus&>(*conn),
         "type='signal',member='PropertiesChanged',path='" +
             serviceMgrKvmObjPath + "',arg0namespace='" + serviceMgrIface + "'",
         std::move(serviceStatusCallback));
 
-    return monitorKvmService;
+    return monitorServiceMgr;
 }
 
 } // namespace ikvm
