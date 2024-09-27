@@ -245,7 +245,7 @@ sdbusplus::bus::match_t
     return powerStatMatcher;
 }
 
-sdbusplus::bus::match_t Monitor::monitoringKVMService(
+sdbusplus::bus::match_t Monitor::monitoringKvmStatus(
     const std::shared_ptr<sdbusplus::asio::connection> conn)
 {
     auto serviceStatusCallback = [&conn](sdbusplus::message_t& msg) {
@@ -267,7 +267,7 @@ sdbusplus::bus::match_t Monitor::monitoringKVMService(
                     if (!enabled)
                     {
                         // Update the KVM status
-                        kvmStatus = true;
+                        isKvmDisabled = true;
                     }
                 }
             }

@@ -34,7 +34,7 @@ void Manager::run()
     sdbusplus::bus::match_t triggerSignal = monitor.sessionMonitor(conn);
     sdbusplus::bus::match_t captutreTimeout = monitor.sessionTimeout(conn);
     sdbusplus::bus::match_t powerStatMatcher = monitor.powerStatMonitor(conn);
-    sdbusplus::bus::match_t KVMStatus = monitor.monitoringKVMService(conn);
+    sdbusplus::bus::match_t KVMStatus = monitor.monitoringKvmStatus(conn);
 
     std::thread run(serverThread, this);
     std::thread runStatusUpdate(statusUpdateThread, this);

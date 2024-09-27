@@ -146,7 +146,7 @@ void Server::sendFrame()
 
         /* Disconnecting the clients immediately when KVM has been disabled from
          * WebUI*/
-        if (kvmStatus)
+        if (isKvmDisabled)
         {
             handleKVMServiceDisabled(cl->screen);
             rfbCloseClient(cl);

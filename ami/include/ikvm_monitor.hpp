@@ -99,7 +99,7 @@ class Monitor
      *  @param[in]conn Pointer to Dbus Connection
      */
     sdbusplus::bus::match_t
-        monitoringKVMService(std::shared_ptr<sdbusplus::asio::connection> conn);
+        monitoringKvmStatus(std::shared_ptr<sdbusplus::asio::connection> conn);
 };
 
 } // namespace ikvm

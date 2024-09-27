@@ -101,7 +101,7 @@ extern const std::string pwrStatIface;
 extern std::string hostPowerState;
 
 /*@brief storing the KVM status */
-extern bool kvmStatus;
+extern bool isKvmDisabled;
 
 /*@brief NO SIGNAL image stored Path */
 extern const char* NO_SIGNAL_IMG_PATH;
