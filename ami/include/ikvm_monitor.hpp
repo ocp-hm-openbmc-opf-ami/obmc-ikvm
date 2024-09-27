@@ -100,7 +100,6 @@ class Monitor
      */
     sdbusplus::bus::match_t
         monitoringKVMService(std::shared_ptr<sdbusplus::asio::connection> conn);
-
 };
 
 } // namespace ikvm

@@ -32,6 +32,12 @@
 #include <memory>
 #include <variant>
 
+/* Define macros for handling IVTP */
+#define SERVER_CUT_TEXT 3
+#define IVTP_STOP_SESSION_IMMEDIATE 0x0008
+
+#define STATUS_SUCCESS (0x00)
+
 namespace ikvm
 {
 namespace fs = std::filesystem;

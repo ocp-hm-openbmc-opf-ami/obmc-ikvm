@@ -252,7 +252,8 @@ sdbusplus::bus::match_t Monitor::monitoringKVMService(
         try
         {
             std::string interfaceName;
-            boost::container::flat_map<std::string, std::variant<bool, uint64_t>>
+            boost::container::flat_map<std::string,
+                                       std::variant<bool, uint64_t>>
                 properties;
             msg.read(interfaceName, properties);
 

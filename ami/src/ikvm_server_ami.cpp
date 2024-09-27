@@ -16,11 +16,6 @@
 #include "ami/include/ikvm_utils.hpp"
 #include "ikvm_server.hpp"
 
-#define SERVER_CUT_TEXT 3
-#define IVTP_STOP_SESSION_IMMEDIATE (0x0008)
-
-#define STATUS_SUCCESS (0x00)
-
 namespace ikvm
 {
 void Server::updatePowerSaveMode(int status)
@@ -57,9 +52,8 @@ void Server::sendDisconnectMessageToClients(rfbScreenInfoPtr rfbScreen,
     }
 }
 
-std::vector<unsigned char>
-    Server::createIVTPStopSessionPacket(unsigned short stopReason,
-                                        unsigned short status)
+std::vector<unsigned char> Server::createIVTPStopSessionPacket(
+    unsigned short stopReason, unsigned short status)
 {
     constexpr unsigned int ivtpHeaderSize = 12; // IVTP header size (12 bytes)
     std::vector<unsigned char> ivtpPacket(ivtpHeaderSize);

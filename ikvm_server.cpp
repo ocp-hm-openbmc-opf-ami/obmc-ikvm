@@ -1,5 +1,6 @@
 #include "ikvm_server.hpp"
 
+#include <arpa/inet.h>
 #include <linux/videodev2.h>
 #include <rfb/rfbproto.h>
 
@@ -8,7 +9,6 @@
 #include <phosphor-logging/elog.hpp>
 #include <phosphor-logging/log.hpp>
 #include <xyz/openbmc_project/Common/error.hpp>
-#include <arpa/inet.h> // For htonl/htons
 
 #define ROUND_DOWN(x, r) ((x) & ~((r) - 1))
 
@@ -149,6 +149,7 @@ void Server::sendFrame()
         if (kvmStatus)
         {
             handleKVMServiceDisabled(cl->screen);
+            rfbCloseClient(cl);
             continue;
         }
 
