@@ -32,6 +32,12 @@
 #include <memory>
 #include <variant>
 
+/* Define macros for handling IVTP */
+#define SERVER_CUT_TEXT 3
+#define IVTP_STOP_SESSION_IMMEDIATE 0x0008
+
+#define STATUS_SUCCESS (0x00)
+
 namespace ikvm
 {
 namespace fs = std::filesystem;
@@ -93,6 +99,9 @@ extern const std::string pwrStatIface;
  * @param[value] "Unknown": The host power state is unknown
  */
 extern std::string hostPowerState;
+
+/*@brief storing the KVM status */
+extern bool isKvmDisabled;
 
 /*@brief NO SIGNAL image stored Path */
 extern const char* NO_SIGNAL_IMG_PATH;

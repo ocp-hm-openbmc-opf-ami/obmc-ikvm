@@ -1,5 +1,6 @@
 #include "ikvm_server.hpp"
 
+#include <arpa/inet.h>
 #include <linux/videodev2.h>
 #include <rfb/rfbproto.h>
 
@@ -139,6 +140,15 @@ void Server::sendFrame()
          * will be disconnected */
         if (timeSinceLastActive >= timeoutValue)
         {
+            rfbCloseClient(cl);
+            continue;
+        }
+
+        /* Disconnecting the clients immediately when KVM has been disabled from
+         * WebUI*/
+        if (isKvmDisabled)
+        {
+            handleKVMServiceDisabled(cl->screen);
             rfbCloseClient(cl);
             continue;
         }
