@@ -22,13 +22,29 @@ void Server::updatePowerSaveMode(int status)
 {
     if ((status == 0) || (status == 1))
     {
-        auto bus = sdbusplus::bus::new_system();
-        auto methodCall = bus.new_method_call(
-            "xyz.openbmc_project.Settings",
-            "/xyz/openbmc_project/logging/settings", "xyz.openbmc_project.USB",
-            "SetUSBPowerSaveMode");
-        methodCall.append(status);
-        bus.call(methodCall);
+        try
+        {
+            auto bus = sdbusplus::bus::new_system();
+            auto methodCall = bus.new_method_call(
+                "xyz.openbmc_project.Settings",
+                "/xyz/openbmc_project/logging/settings",
+                "xyz.openbmc_project.USB", "SetUSBPowerSaveMode");
+            methodCall.append(status);
+            bus.call(methodCall);
+        }
+
+        catch (const sdbusplus::exception::SdBusError& e)
+        {
+            log<level::ERR>("D-Bus call Failed", entry("ERROR=%s", e.what()));
+            return;
+        }
+
+        catch (const std::exception& e)
+        {
+            log<level::ERR>("Error handling for powersavemode",
+                            entry("ERROR=%s", e.what()));
+            return;
+        }
     }
 }
 

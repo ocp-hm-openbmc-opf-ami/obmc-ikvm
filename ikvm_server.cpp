@@ -341,24 +341,41 @@ void Server::clientGone(rfbClientPtr cl)
     Server* server = (Server*)cl->screen->screenData;
     ClientData* cd = (ClientData*)cl->clientData;
 
-    /* Method call for unregistering */
-    for (const auto& id : activeSessionIDs)
+    try
     {
-        if (cd->sessionId == id)
+        /* Method call for unregistering */
+        for (const auto& id : activeSessionIDs)
         {
-            auto busUnRegister = sdbusplus::bus::new_default_system();
-            auto m = busUnRegister.new_method_call(
-                smgrService.c_str(), smgrObjPath.c_str(), smgrIface.c_str(),
-                "SessionUnregister");
-            uint8_t sessionType = KVM;
-            int reason = LOGOUT;
+            if (cd->sessionId == id)
+            {
+                auto busUnRegister = sdbusplus::bus::new_default_system();
+                auto m = busUnRegister.new_method_call(
+                    smgrService.c_str(), smgrObjPath.c_str(), smgrIface.c_str(),
+                    "SessionUnregister");
+                uint8_t sessionType = KVM;
+                int reason = LOGOUT;
 
-            m.append(cd->sessionId, sessionType, reason);
-            auto reply = busUnRegister.call(m);
-            bool status = false;
+                m.append(cd->sessionId, sessionType, reason);
+                auto reply = busUnRegister.call(m);
+                bool status = false;
 
-            reply.read(status);
+                reply.read(status);
+            }
         }
+    }
+
+    catch (const sdbusplus::exception::SdBusError& e)
+    {
+        log<level::ERR>("D-Bus call Failed",
+                        entry("ERROR=%s", e.what()));
+        return;
+    }
+
+    catch (const std::exception& e)
+    {
+        log<level::ERR>("Error handling for session unregistering",
+                        entry("ERROR=%s", e.what()));
+        return;
     }
 
     delete (ClientData*)cl->clientData;
@@ -386,49 +403,66 @@ enum rfbNewClientAction Server::newClient(rfbClientPtr cl)
 
     updatePowerSaveMode(0); // Disable power saving mode
 
-    /* Method call for Registering */
-    auto busRegister = sdbusplus::bus::new_default_system();
-    auto m =
-        busRegister.new_method_call(smgrService.c_str(), smgrObjPath.c_str(),
-                                    smgrIface.c_str(), "SessionRegister");
-    std::string ipAdress = DEFAULT_IP;
-    std::string userName = USER_NAME;
-    uint8_t sessionType = KVM;
-    uint8_t privilege = PRIV_LEVEL_ADMIN;
-    uint8_t userId = KVM_DEFAULT_USER_ID;
-    std::string mountingMethod = MOUNTING_METHOD;
-
-    propertyValue propertyval;
-
-    m.append(cd->sessionId, ipAdress, userName, sessionType, privilege, userId,
-             mountingMethod);
-
-    auto reply = busRegister.call(m);
-    bool status = false;
-    reply.read(status);
-
-    if (status)
+    try
     {
-        auto msg2 = busRegister.new_method_call(
-            smgrService.c_str(), smgrObjPath.c_str(), DBUS_PROPERTIES_INTERFACE,
-            "Get");
+        /* Method call for Registering */
+        auto busRegister = sdbusplus::bus::new_default_system();
+        auto m = busRegister.new_method_call(
+            smgrService.c_str(), smgrObjPath.c_str(), smgrIface.c_str(),
+            "SessionRegister");
+        std::string ipAdress = DEFAULT_IP;
+        std::string userName = USER_NAME;
+        uint8_t sessionType = KVM;
+        uint8_t privilege = PRIV_LEVEL_ADMIN;
+        uint8_t userId = KVM_DEFAULT_USER_ID;
+        std::string mountingMethod = MOUNTING_METHOD;
 
-        msg2.append(smgrKVMIface, "KvmSessionInfo");
+        propertyValue propertyval;
 
-        auto reply1 = busRegister.call(msg2);
-        reply1.read(propertyval);
+        m.append(cd->sessionId, ipAdress, userName, sessionType, privilege,
+                 userId, mountingMethod);
 
-        if (std::holds_alternative<sessionRet>(propertyval))
+        auto reply = busRegister.call(m);
+        bool status = false;
+        reply.read(status);
+
+        if (status)
         {
-            sessionRet& vec = std::get<sessionRet>(propertyval);
-            if (!vec.empty())
+            auto msg2 = busRegister.new_method_call(
+                smgrService.c_str(), smgrObjPath.c_str(),
+                DBUS_PROPERTIES_INTERFACE, "Get");
+
+            msg2.append(smgrKVMIface, "KvmSessionInfo");
+
+            auto reply1 = busRegister.call(msg2);
+            reply1.read(propertyval);
+
+            if (std::holds_alternative<sessionRet>(propertyval))
             {
-                const auto& latestEntry = vec.back(); /* Get the last element */
-                cd->sessionId = static_cast<uint8_t>(std::get<0>(latestEntry));
-                // Add the session ID to the vector
-                activeSessionIDs.push_back(cd->sessionId);
+                sessionRet& vec = std::get<sessionRet>(propertyval);
+                if (!vec.empty())
+                {
+                    const auto& latestEntry =
+                        vec.back(); /* Get the last element */
+                    cd->sessionId =
+                        static_cast<uint8_t>(std::get<0>(latestEntry));
+                    // Add the session ID to the vector
+                    activeSessionIDs.push_back(cd->sessionId);
+                }
             }
         }
+    }
+
+    catch (const sdbusplus::exception::SdBusError& e)
+    {
+        log<level::ERR>("D-Bus call Failed",
+                        entry("ERROR=%s", e.what()));
+    }
+
+    catch (const std::exception& e)
+    {
+        log<level::ERR>(" Error handling for session Registering",
+                        entry("ERROR=%s", e.what()));
     }
 
     if (!server->numClients++)

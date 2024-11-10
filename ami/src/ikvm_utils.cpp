@@ -153,26 +153,42 @@ void powerStatusInit()
 
 void sessionTimeout()
 {
-    auto busSessTimoutValue = sdbusplus::bus::new_default_system();
-    auto msgSessTimoutValue = busSessTimoutValue.new_method_call(
-        serviceMgrService.c_str(), serviceMgrKvmObjPath.c_str(),
-        DBUS_PROPERTIES_INTERFACE, "Get");
-    msgSessTimoutValue.append(serviceMgrIface.c_str(), "SessionTimeOut");
-
-    auto reply = busSessTimoutValue.call(msgSessTimoutValue);
-
-    if (reply.is_method_error())
+    try
     {
-        log<level::ERR>("D-Bus method call error.");
+        auto busSessTimoutValue = sdbusplus::bus::new_default_system();
+        auto msgSessTimoutValue = busSessTimoutValue.new_method_call(
+            serviceMgrService.c_str(), serviceMgrKvmObjPath.c_str(),
+            DBUS_PROPERTIES_INTERFACE, "Get");
+        msgSessTimoutValue.append(serviceMgrIface.c_str(), "SessionTimeOut");
+
+        auto reply = busSessTimoutValue.call(msgSessTimoutValue);
+
+        if (reply.is_method_error())
+        {
+            log<level::ERR>("D-Bus method call error.");
+            return;
+        }
+
+        // Extract the value from the reply
+        std::variant<uint64_t> sessionTimeoutValue;
+        reply.read(sessionTimeoutValue);
+
+        uint64_t timeoutSeconds = std::get<uint64_t>(sessionTimeoutValue);
+        timeoutValue = std::chrono::seconds(timeoutSeconds);
+    }
+
+    catch (const sdbusplus::exception::SdBusError& e)
+    {
+        log<level::ERR>("D-Bus call Failed", entry("ERROR=%s", e.what()));
         return;
     }
 
-    // Extract the value from the reply
-    std::variant<uint64_t> sessionTimeoutValue;
-    reply.read(sessionTimeoutValue);
-
-    uint64_t timeoutSeconds = std::get<uint64_t>(sessionTimeoutValue);
-    timeoutValue = std::chrono::seconds(timeoutSeconds);
+    catch (const std::exception& e)
+    {
+        log<level::ERR>("Error handling for session timeout",
+                        entry("ERROR=%s", e.what()));
+        return;
+    }
 }
 
 } // namespace ikvm
