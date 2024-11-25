@@ -19,6 +19,7 @@ namespace ikvm
 class Video
 {
   public:
+    bool isNewClient;
     /*
      * @brief Constructs Video object
      *

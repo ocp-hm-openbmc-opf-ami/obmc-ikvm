@@ -62,7 +62,7 @@ void Manager::statusUpdateThread(Manager* manager)
         {
             manager->video.start();
 
-            if (scrnshotFlag.load())
+            if (scrnshotFlag.load() || manager->video.isNewClient)
             {
                 if (manager->video.getFormat() == 2)
                 {

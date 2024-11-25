@@ -69,6 +69,7 @@ Server::Server(const Args& args, Input& i, Video& v) :
     processTime = (1000000 / video.getFrameRate()) - 100;
 
     calcFrameCRC = args.getCalcFrameCRC();
+    video.isNewClient = false;
 }
 
 Server::~Server()
@@ -388,11 +389,22 @@ void Server::clientGone(rfbClientPtr cl)
         rfbMarkRectAsModified(server->server, 0, 0, server->video.getWidth(),
                               server->video.getHeight());
     }
+
+    server->kvmFullPrivSession = (!cl->viewOnly ? true : false);
+
+    if (server->numClients <= 1)
+        server->video.isNewClient = false;
+
 }
 
 enum rfbNewClientAction Server::newClient(rfbClientPtr cl)
 {
     Server* server = (Server*)cl->screen->screenData;
+
+    if (server->numClients >= 2)
+    {
+        return RFB_CLIENT_REFUSE;
+    }
 
     cl->clientData = new ClientData(ROUND_DOWN(server->video.getFrameRate(), 8),
                                     &server->input);
@@ -472,6 +484,20 @@ enum rfbNewClientAction Server::newClient(rfbClientPtr cl)
         server->frameCounter = 0;
     }
 
+    if (server->numClients > 1)
+        server->video.isNewClient = true;
+
+    if (server->kvmFullPrivSession)
+    {
+        cl->viewOnly = true;
+        cl->screen->desktopName = "OneTree IKVM (View Only)";
+    }
+    else
+    {
+        cl->viewOnly = false;
+        cl->screen->desktopName = "OneTree IKVM";
+        server->kvmFullPrivSession = true;
+    }
     return RFB_CLIENT_ACCEPT;
 }
 

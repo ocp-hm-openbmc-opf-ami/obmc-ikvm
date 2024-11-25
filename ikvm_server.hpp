@@ -168,8 +168,9 @@ class Server
      */
     static std::vector<unsigned char> createIVTPStopSessionPacket(
         unsigned short stopReason, unsigned short status);
-
-    static bool isCustomViewer;
+    /// @brief Denotes KVM permission status. true if full permission session
+    /// already exist. false otherwise.
+    bool kvmFullPrivSession = false;
     /* @brief Boolean to indicate if a resize operation is on-going */
     bool pendingResize;
     /* @brief Number of frames handled since a client connected */
