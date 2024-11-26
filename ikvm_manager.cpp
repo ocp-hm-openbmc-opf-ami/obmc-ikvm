@@ -75,7 +75,21 @@ void Manager::statusUpdateThread(Manager* manager)
                 manager->video.formatChange(manager->video.getOriginalFormat());
             }
 
-            manager->video.getFrame();
+            if (manager->video.getSignalStatus() == V4L2_IN_ST_NO_SIGNAL)
+	    {
+		    if (hostPowerState == "Off")
+		    {  
+			    manager->video.setFrame(POWER_OFF_IMG_PATH);
+		    }
+		    else
+		    {    
+			    manager->video.setFrame(NO_SIGNAL_IMG_PATH);
+		    }
+	    }
+            else
+	    {
+		    manager->video.getFrame();
+	    }
 
             if (scrnshotFlag.load())
             {

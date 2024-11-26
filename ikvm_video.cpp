@@ -518,8 +518,16 @@ void Video::start()
                             entry("ERROR=%s", strerror(errno)));
     }
 
-    height = fmt.fmt.pix.height;
-    width = fmt.fmt.pix.width;
+    if (getSignalStatus() == V4L2_IN_ST_NO_SIGNAL) // Updating the width and height according to the power-off or no-signal JPG image
+    {
+	    height  = 600;
+	    width = 800;
+    }
+    else
+    {
+	    height = fmt.fmt.pix.height;
+	    width = fmt.fmt.pix.width;
+    }
     pixelformat = fmt.fmt.pix.pixelformat;
 
     if (pixelformat != V4L2_PIX_FMT_RGB24 && pixelformat != V4L2_PIX_FMT_JPEG)

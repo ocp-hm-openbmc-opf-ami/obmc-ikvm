@@ -9,6 +9,7 @@
 #include <mutex>
 #include <string>
 #include <vector>
+#include <fstream>
 
 namespace ikvm
 {
@@ -43,6 +44,8 @@ class Video
     char* getData();
     char* getData(unsigned int i);
 
+    /* @brief Writes the given image to the buffer*/
+    void setFrame(const char*);
     /* @brief Performs read to grab latest video frame */
     void getFrame();
     /* @brief Performs return done video frames back to driver */
