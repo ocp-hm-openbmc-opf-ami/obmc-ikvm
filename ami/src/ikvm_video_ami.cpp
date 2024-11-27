@@ -155,7 +155,7 @@ void Video::setFrame(const char* ImgPath)
 		memcpy(buffers[0].data, buffer.data(), size);
 		buffers[0].payload = size;
 		buffers[0].sequence = sequenceNumber++;
-		buffers[0].box = {0, 0, width, height};
+		buffers[0].box = {0, 0, static_cast<unsigned int>(width), static_cast<unsigned int>(height)};
 		buffers[0].queued = true;
 		buffersDone.push_back(0);
 	}
