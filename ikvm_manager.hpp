@@ -1,6 +1,5 @@
 #pragma once
 
-#include "ami/include/ikvm_interface.hpp"
 #include "ami/include/ikvm_monitor.hpp"
 #include "ami/include/ikvm_utils.hpp"
 #include "ikvm_args.hpp"

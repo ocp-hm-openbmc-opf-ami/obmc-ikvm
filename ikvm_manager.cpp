@@ -23,18 +23,9 @@ void Manager::run()
 {
     createUtilities();
     auto conn = std::make_shared<sdbusplus::asio::connection>(io);
-    conn->request_name(kvmServiceName.c_str());
     sdbusplus::asio::object_server objServer(conn);
 
-    Interface interface(objServer);
-    interface.addInterfaces();
-
-    sdbusplus::bus::match_t bsodMatcher = monitor.bsodErrorEventMonitor(conn);
-    sdbusplus::bus::match_t screenshotMatcher = monitor.screenshotMonitor(conn);
-    sdbusplus::bus::match_t triggerSignal = monitor.sessionMonitor(conn);
-    sdbusplus::bus::match_t captutreTimeout = monitor.sessionTimeout(conn);
-    sdbusplus::bus::match_t powerStatMatcher = monitor.powerStatMonitor(conn);
-    sdbusplus::bus::match_t KVMStatus = monitor.monitoringKvmStatus(conn);
+    monitor.initialize(conn);
 
     std::thread run(serverThread, this);
     std::thread runStatusUpdate(statusUpdateThread, this);
@@ -58,38 +49,47 @@ void Manager::statusUpdateThread(Manager* manager)
 {
     while (manager->continueExecuting)
     {
-        if (manager->server.wantsFrame() || scrnshotFlag.load())
+        if (manager->server.wantsFrame() || scrnshotFlag.load() ||
+            videoRecFlag.load())
         {
             manager->video.start();
 
-            if (scrnshotFlag.load() || manager->video.isNewClient)
+            if (scrnshotFlag.load() || manager->video.isNewClient ||
+                videoRecFlag.load())
             {
                 if (manager->video.getFormat() == 2)
                 {
+                    log<level::DEBUG>("switching to standard jpeg...");
                     manager->video.formatChange(0);
                 }
             }
             else if (manager->video.getFormat() !=
                      manager->video.getOriginalFormat())
             {
-                manager->video.formatChange(manager->video.getOriginalFormat());
+                if (!recThreadStatus.load())
+                {
+                    log<level::DEBUG>(
+                        "Reverting to Original Streaming format...");
+                    manager->video.formatChange(
+                        manager->video.getOriginalFormat());
+                }
             }
 
             if (manager->video.getSignalStatus() == V4L2_IN_ST_NO_SIGNAL)
-	    {
-		    if (hostPowerState == "Off")
-		    {  
-			    manager->video.setFrame(POWER_OFF_IMG_PATH);
-		    }
-		    else
-		    {    
-			    manager->video.setFrame(NO_SIGNAL_IMG_PATH);
-		    }
-	    }
+            {
+                if (hostPowerState == "Off")
+                {
+                    manager->video.setFrame(POWER_OFF_IMG_PATH);
+                }
+                else
+                {
+                    manager->video.setFrame(NO_SIGNAL_IMG_PATH);
+                }
+            }
             else
-	    {
-		    manager->video.getFrame();
-	    }
+            {
+                manager->video.getFrame();
+            }
 
             if (scrnshotFlag.load())
             {
@@ -97,6 +97,20 @@ void Manager::statusUpdateThread(Manager* manager)
                 {
                     manager->video.screenShot(bsodAsJpeg);
                     scrnshotFlag.store(false);
+                }
+            }
+            if (videoRecFlag.load())
+            {
+                if (!recThreadStatus.load())
+                {
+                    if (manager->video.getFormat() != 2)
+                    {
+                        recThreadStatus.store(true);
+                        // Create and start the record thread
+                        std::thread t(&Video::videoRecord, &manager->video);
+                        // Detach the thread for non-blocking proceeding
+                        t.detach();
+                    }
                 }
             }
 

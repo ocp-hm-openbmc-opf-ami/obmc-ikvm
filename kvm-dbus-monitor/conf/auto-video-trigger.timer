@@ -1,0 +1,12 @@
+[Unit]
+Description= Timer for Auto video trigger on specific date and time...
+
+[Timer]
+# Date and time in %Y-%m-%d %H:%M:%S (UTC) format
+OnCalendar= 2099-12-31 12:00:00
+Persistent=true
+AccuracySec=1s
+Unit= auto-video-trigger.service
+
+[Install]
+WantedBy=timers.target

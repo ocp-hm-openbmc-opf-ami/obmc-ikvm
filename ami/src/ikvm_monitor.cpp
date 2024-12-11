@@ -20,9 +20,20 @@ namespace ikvm
 
 using namespace phosphor::logging;
 
-Monitor::Monitor()
+void Monitor::initialize(
+    const std::shared_ptr<sdbusplus::asio::connection>& connection)
 {
     scrnshotFlag.store(false);
+    videoRecFlag.store(false);
+    recThreadStatus.store(false);
+
+    // Add matchers for monitoring variuou D-bus events
+
+    matchers.emplace_back(screenshotMonitor(connection));
+    matchers.emplace_back(sessionMonitor(connection));
+    matchers.emplace_back(sessionTimeout(connection));
+    matchers.emplace_back(powerStatMonitor(connection));
+    matchers.emplace_back(videoRecordMonitor(connection));
 }
 
 sdbusplus::bus::match_t Monitor::bsodErrorEventMonitor(
@@ -288,4 +299,58 @@ sdbusplus::bus::match_t Monitor::monitoringKvmStatus(
     return monitorServiceMgr;
 }
 
+sdbusplus::bus::match_t Monitor::videoRecordMonitor(
+    std::shared_ptr<sdbusplus::asio::connection> conn)
+{
+    auto videoRecordCallback = [&conn, this](sdbusplus::message_t& msg) {
+        try
+        {
+            ikvm::getRemoteConf();
+            if (!ikvm::active)
+            {
+                return;
+            }
+            log<level::DEBUG>("entered videoRecordMonitor in KVM server");
+
+            std::string interfaceName;
+            boost::container::flat_map<std::string, std::variant<bool>>
+                videoRecordProperty;
+            msg.read(interfaceName, videoRecordProperty);
+
+            for (const auto& entry : videoRecordProperty)
+            {
+                if (entry.first == "RecordStatus")
+                {
+                    if (std::get<bool>(entry.second))
+                    {
+                        if (ikvm::active)
+                        {
+                            log<level::INFO>(
+                                " START video recording requested");
+                            videoRecFlag.store(true);
+                        }
+                    }
+                    else
+                    {
+                        log<level::INFO>(" STOP recording requested");
+                        videoRecFlag.store(false);
+                    }
+                }
+            }
+        }
+        catch (const std::exception& e)
+        {
+            log<level::ERR>("Error handling video trigger signal",
+                            entry("ERROR=%s", e.what()));
+        }
+    };
+
+    sdbusplus::bus::match_t videoRecordMatcher(
+        static_cast<sdbusplus::bus::bus&>(*conn),
+        "type='signal',member='PropertiesChanged',path='" + kvmObjPath + "'," +
+            "arg0namespace='" + videoRecInterface + "'",
+        std::move(videoRecordCallback));
+
+    return videoRecordMatcher;
+}
 } // namespace ikvm

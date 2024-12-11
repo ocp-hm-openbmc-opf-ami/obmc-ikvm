@@ -1,0 +1,33 @@
+{
+    "Kvm" :{
+        "Screenshot" : {
+            "Trigger": true
+        },
+        "VideoRecord":{
+            "RecordStatus" : false
+        }
+    },
+    "VideoRecord" : {
+        "PreEventRecording": {
+            "CompressMode": 1,
+            "FPS": 1,
+            "MaxDuration": 1,
+            "VideoQuality": 1
+        },
+        "RemoteStorage": {
+            "Active": false,
+            "MaxDumps" : 1,
+            "MaxDuration": 1,
+            "MaxSize" : 1,
+            "PathInServer":"",
+            "RecordToRemote": false,
+            "ServerIP": "",
+            "ShareType":"nfs"
+        },
+        "TriggerSettings": {
+            "Date" : "2099-12-31",
+            "TriggeringEvents" : 0,
+            "Time" : "12:00:00"
+        }
+    }
+}

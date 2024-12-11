@@ -1,0 +1,5 @@
+[Unit]
+Description= Auto video record trigger Serice
+
+[Service]
+ExecStart= -busctl call xyz.openbmc_project.Kvm /xyz/openbmc_project/Kvm xyz.openbmc_project.Kvm.VideoRecord TriggerRecord s Start

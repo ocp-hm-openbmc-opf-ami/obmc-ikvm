@@ -23,6 +23,7 @@
 #include <filesystem>
 #include <iostream>
 #include <variant>
+#include <vector>
 
 namespace fs = std::filesystem;
 
@@ -40,7 +41,7 @@ class Monitor
     /*
      * @brief Constructs the Monitor object
      */
-    explicit Monitor();
+    Monitor() = default;
     ~Monitor() = default;
     Monitor(const Monitor&) = default;
     Monitor& operator=(const Monitor&) = default;
@@ -100,6 +101,26 @@ class Monitor
      */
     sdbusplus::bus::match_t
         monitoringKvmStatus(std::shared_ptr<sdbusplus::asio::connection> conn);
+    /*
+     *
+     *  @brief D-Bus Signal Monitor for Auto Video Record Trigger
+     *
+     *  @param[in]conn Pointer to Dbus Connection
+     */
+    sdbusplus::bus::match_t
+        videoRecordMonitor(std::shared_ptr<sdbusplus::asio::connection> conn);
+    /*
+     *
+     *  @brief Initialize method for Monitor Class
+     *
+     *  @param[in]conn Pointer to Dbus Connection
+     */
+    void initialize(
+        const std::shared_ptr<sdbusplus::asio::connection>& connection);
+
+  private:
+    /* @brief matcher(dbus signal monitors) storage */
+    std::vector<sdbusplus::bus::match_t> matchers;
 };
 
 } // namespace ikvm

@@ -4,7 +4,6 @@
 
 ami_sources = [
     'ami/src/ikvm_input_ami.cpp',
-    'ami/src/ikvm_interface.cpp',
     'ami/src/ikvm_monitor.cpp',
     'ami/src/ikvm_server_ami.cpp',
     'ami/src/ikvm_utils.cpp',

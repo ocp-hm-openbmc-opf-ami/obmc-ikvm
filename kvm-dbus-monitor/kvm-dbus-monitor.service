@@ -1,0 +1,14 @@
+[Unit]
+Description=KVM Dbus monitor and Interface Service
+ConditionPathIsMountPoint=/sys/kernel/config
+ConditionPathExists=/etc/kvm-dbus-monitor.json
+
+[Service]
+Restart=always
+RestartSec=5
+ExecStart=/usr/bin/kvm-dbus-monitor
+SyslogIdentifier=kvm-dbus-monitor
+BusName=xyz.openbmc_project.Kvm
+
+[Install]
+WantedBy=multi-user.target

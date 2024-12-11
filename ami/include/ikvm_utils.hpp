@@ -26,6 +26,7 @@
 #include <xyz/openbmc_project/Common/File/error.hpp>
 
 #include <atomic>
+#include <cstdint>
 #include <filesystem>
 #include <iostream>
 #include <map>
@@ -46,10 +47,16 @@ using namespace phosphor::logging;
 extern const char* DBUS_PROPERTIES_INTERFACE;
 /*@brief common objectpath for kvm dbus interface */
 extern const std::string kvmObjPath;
+extern const std::string videoRecObjPath;
 /*@brief  well-known name for kvm service */
 extern const std::string kvmServiceName;
 /*@brief screenshot interface name */
 extern const std::string scrnshotInterface;
+
+/*@brief KVM Dbus Details */
+extern const std::string videoRecInterface;
+extern const std::string remoteStorageInterface;
+extern const std::string prEventInterface;
 
 /*@brief required parameter for BSOD monitor */
 extern const std::string bsodObjPath;
@@ -65,6 +72,8 @@ extern const std::string bsodDir;
 
 /*@brief pointer to Screenshot interface */
 extern std::shared_ptr<sdbusplus::asio::dbus_interface> kvmScrnshotIface;
+/*@brief pointer to Video Record interface */
+extern std::shared_ptr<sdbusplus::asio::dbus_interface> kvmScrnRecIface;
 
 /*@brief set the time duration for session timeout*/
 extern std::chrono::duration<uint64_t> timeoutValue;
@@ -85,6 +94,12 @@ using sessionInfo = std::tuple<uint8_t, std::string, std::string, uint8_t,
                                uint8_t, uint8_t, std::string>;
 using sessionRet = std::vector<sessionInfo>;
 using propertyValue = std::variant<sessionRet>;
+
+using PropertyValue =
+    std::variant<int, uint8_t, int16_t, int32_t, int64_t, uint16_t, uint32_t,
+                 uint64_t, double, std::string, bool>;
+
+using credentialVariant = std::variant<int32_t, sdbusplus::message::unix_fd>;
 
 extern std::vector<uint8_t> activeSessionIDs;
 
@@ -108,6 +123,23 @@ extern const char* NO_SIGNAL_IMG_PATH;
 /*@brief POWER OFF image stored Path */
 extern const char* POWER_OFF_IMG_PATH;
 
+/*@brief video Record flags */
+extern std::atomic<bool> videoRecFlag;
+extern std::atomic<bool> recThreadStatus;
+extern const std::string recProcessDir;
+extern const std::string screenRecPath;
+
+/*@brief Video Remote Storage Config. */
+extern uint8_t maxDumps;
+extern uint8_t maxDuration;
+extern uint8_t maxSize;
+extern std::string serverIP;
+extern std::string pathInServer;
+extern std::string shareType;
+extern std::string options;
+extern bool recordToRemote;
+extern bool active;
+
 /*
  * ==========================================================
  * <<<<<<<<<<<<<<<<<< UTILITY METHODS >>>>>>>>>>>>>>>>>>>>>>
@@ -130,5 +162,10 @@ void powerStatusInit();
  * @brief Gets the updated session timeout value from external service..
  */
 void sessionTimeout();
+
+/*
+ * @brief Gets Video Remote Storage latest Configurations
+ */
+void getRemoteConf();
 
 } // namespace ikvm

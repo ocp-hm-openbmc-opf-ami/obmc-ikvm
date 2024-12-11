@@ -15,6 +15,14 @@
 #include "ami/include/ikvm_utils.hpp"
 #include "ikvm_video.hpp"
 
+#include <linux/videodev2.h>
+
+#include <atomic>
+#include <chrono>
+#include <cstdlib> // for system()
+#include <exception>
+#include <stdexcept>
+
 namespace ikvm
 {
 uint32_t Video::getSignalStatus()
@@ -48,8 +56,11 @@ uint32_t Video::getSignalStatus()
 void Video::formatChange(int newformat)
 {
     stop();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
     setFormat(newformat);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
     start();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
 }
 
 void Video::screenShot(const std::string& screenShotPath)
@@ -57,6 +68,11 @@ void Video::screenShot(const std::string& screenShotPath)
     if (buffersDone.front() < 0)
     {
         log<level::ERR>("Buffer front empty");
+        return;
+    }
+    if (!(isDir(bsodDir)))
+    {
+        log<level::ERR>("Unable to create destination Path");
         return;
     }
 
@@ -159,6 +175,186 @@ void Video::setFrame(const char* ImgPath)
 		buffers[0].queued = true;
 		buffersDone.push_back(0);
 	}
+}
+
+void Video::videoRecord(Video* video)
+{
+    if (!(ikvm::active))
+    {
+        log<level::ERR>(
+            "Remote Storage not Active(Available) requires reconfiguration");
+        videoRecFlag.store(false);
+        return;
+    }
+
+    auto i = video->buffersDone.front();
+
+    if (i < 0)
+    {
+        return;
+    }
+    auto data = video->getData(i);
+    if (!data)
+    {
+        return;
+    }
+    if (!(isDir(recProcessDir)))
+    {
+        log<level::ERR>("Unable to create destination Path");
+        return;
+    }
+
+    auto size = video->getFrameSize(i);
+    auto frameRate = video->getFrameRate();
+    auto delay = (1000000 / frameRate) - 100;
+    size_t outputSize = 0;
+    size_t maxSize = 7 * 1024 * 1024;
+    int count = 0;
+    int loopcount = 0;
+    auto recDuration = std::chrono::seconds(10);
+    auto recStart = std::chrono::steady_clock::now();
+
+    if (ikvm::recordToRemote)
+    {
+        recDuration = std::chrono::seconds(ikvm::maxDuration);
+        maxSize = (ikvm::maxSize) * 1024 * 1024;
+    }
+
+    try
+    {
+        /*clear the previous data*/
+        std::ofstream screenRec(ikvm::screenRecPath,
+                                std::ios::out | std::ios::trunc);
+        screenRec.close();
+        outputSize = fs::file_size(ikvm::screenRecPath);
+
+        screenRec.open(ikvm::screenRecPath,
+                       std::ios::out | std::ios::binary | std::ios::app);
+
+        log<level::INFO>("recording Started...");
+
+        recStart = std::chrono::steady_clock::now();
+        while (videoRecFlag.load())
+        {
+            if (std::chrono::steady_clock::now() - recStart <= recDuration)
+            {
+                loopcount++;
+                i = video->buffersDone.front();
+                if (i < 0)
+                {
+                    continue;
+                }
+                data = video->getData(i);
+                if (!data)
+                {
+                    continue;
+                }
+                size = video->getFrameSize(i);
+
+                count++;
+                outputSize += size;
+                if (outputSize > maxSize)
+                {
+                    videoRecFlag.store(false);
+                    log<level::INFO>("recording stopped[MaxSize reached]...");
+                    continue;
+                }
+
+                screenRec.write(data, size);
+                log<level::DEBUG>("Host screen Record in progress...");
+                std::this_thread::sleep_for(std::chrono::microseconds(delay));
+            }
+            else
+            {
+                videoRecFlag.store(false);
+                log<level::INFO>("recording stopped...");
+            }
+        }
+        screenRec.close();
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        /*
+         * At this point it is safe to send record flag to false
+         * interface
+         *
+         */
+        if (!Video::updateRecStat("Stop"))
+        {
+            throw std::runtime_error("failed in D-bus call");
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        recThreadStatus.store(false);
+    }
+    catch (const sdbusplus::exception::SdBusError& e)
+    {
+        // As the D bus failed not calling it during clean-up
+
+        log<level::ERR>(" Exception caught in dbus call");
+        log<level::ERR>("Error: ", entry("ERROR=%s", e.what()));
+
+        videoRecFlag.store(false);
+        recThreadStatus.store(false);
+
+        return;
+    }
+    catch (const std::exception& e)
+    {
+
+        log<level::ERR>("Exception caught during video record");
+        log<level::ERR>("Error : ", entry("ERROR=%s", e.what()));
+
+        videoRecFlag.store(false);
+        recThreadStatus.store(false);
+        Video::updateRecStat("Stop");
+
+        return;
+    }
+
+    log<level::DEBUG>(" Recording process completed successfully ");
+}
+
+bool Video::updateRecStat(std::string recType)
+{
+    bool status = false;
+
+    try
+    {
+        auto bus = sdbusplus::bus::new_default_system();
+
+        auto msg = bus.new_method_call(
+            "xyz.openbmc_project.Kvm", "/xyz/openbmc_project/Kvm",
+            "xyz.openbmc_project.Kvm.VideoRecord", "TriggerRecord");
+
+        std::string result;
+        msg.append(recType);
+        auto reply = bus.call(msg);
+        reply.read(result);
+
+        if (result == "Success")
+        {
+            status = true;
+        }
+        else
+        {
+            throw std::runtime_error(result);
+        }
+    }
+    catch (const sdbusplus::exception::SdBusError& e)
+    {
+        log<level::ERR>(" Exception caught in dbus call");
+        log<level::ERR>("Error: ", entry("ERROR=%s", e.what()));
+        status = false;
+        // return;
+    }
+    catch (const std::exception& e)
+    {
+        log<level::ERR>(" Exception caught in handling Host power state");
+        log<level::ERR>("Error: ", entry("ERROR=%s", e.what()));
+        status = false;
+    }
+
+    return status;
 }
 
 } // namespace ikvm

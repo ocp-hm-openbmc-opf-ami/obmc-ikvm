@@ -220,7 +220,22 @@ class Video
      * @param[in] screenShotPath : path to store Image
      */
     void screenShot(const std::string& screenShotPath);
-
+    /*
+     * @brief captures video frame and
+     * stores as an raw file(.dat) in memory
+     * @param[in] video Video object
+     */
+    static void videoRecord(Video *video);
+    /*
+     * @brief dbus call to update video record status
+     *
+     * @param[in] recType
+     * allowed values
+     *      Start - Video Record Start
+     *      Stop  - Video Record Stop
+     *
+     */
+    static bool updateRecStat(std::string recType);
   private:
     void qbuf(int i);
     /*
