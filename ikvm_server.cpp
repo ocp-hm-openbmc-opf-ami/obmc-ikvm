@@ -342,6 +342,13 @@ void Server::clientGone(rfbClientPtr cl)
     Server* server = (Server*)cl->screen->screenData;
     ClientData* cd = (ClientData*)cl->clientData;
 
+    server->numClients--;
+
+    if (!cl->viewOnly)
+    {
+        server->kvmFullPrivSession = false;
+    }
+
     try
     {
         /* Method call for unregistering */
@@ -367,8 +374,7 @@ void Server::clientGone(rfbClientPtr cl)
 
     catch (const sdbusplus::exception::SdBusError& e)
     {
-        log<level::ERR>("D-Bus call Failed",
-                        entry("ERROR=%s", e.what()));
+        log<level::ERR>("D-Bus call Failed", entry("ERROR=%s", e.what()));
         return;
     }
 
@@ -382,7 +388,7 @@ void Server::clientGone(rfbClientPtr cl)
     delete (ClientData*)cl->clientData;
     cl->clientData = nullptr;
 
-    if (server->numClients-- == 1)
+    if (server->numClients == 0)
     {
         server->input.disconnect();
         updatePowerSaveMode(1);
@@ -390,11 +396,8 @@ void Server::clientGone(rfbClientPtr cl)
                               server->video.getHeight());
     }
 
-    server->kvmFullPrivSession = (!cl->viewOnly ? true : false);
-
     if (server->numClients <= 1)
         server->video.isNewClient = false;
-
 }
 
 enum rfbNewClientAction Server::newClient(rfbClientPtr cl)
@@ -467,8 +470,7 @@ enum rfbNewClientAction Server::newClient(rfbClientPtr cl)
 
     catch (const sdbusplus::exception::SdBusError& e)
     {
-        log<level::ERR>("D-Bus call Failed",
-                        entry("ERROR=%s", e.what()));
+        log<level::ERR>("D-Bus call Failed", entry("ERROR=%s", e.what()));
     }
 
     catch (const std::exception& e)
