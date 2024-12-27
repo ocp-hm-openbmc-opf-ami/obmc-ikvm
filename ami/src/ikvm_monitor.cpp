@@ -33,6 +33,7 @@ void Monitor::initialize(
     matchers.emplace_back(sessionMonitor(connection));
     matchers.emplace_back(sessionTimeout(connection));
     matchers.emplace_back(powerStatMonitor(connection));
+    matchers.emplace_back(monitoringKvmStatus(connection));
     matchers.emplace_back(videoRecordMonitor(connection));
 }
 

@@ -51,7 +51,7 @@ void Server::updatePowerSaveMode(int status)
 void Server::handleKVMServiceDisabled(rfbScreenInfoPtr rfbScreen)
 {
     sendDisconnectMessageToClients(rfbScreen, IVTP_STOP_SESSION_IMMEDIATE,
-                                   STATUS_SUCCESS);
+                                   STOP_SESSION_IMMEDIATE);
 }
 
 void Server::sendDisconnectMessageToClients(rfbScreenInfoPtr rfbScreen,
@@ -114,6 +114,25 @@ void Server::sendIVTPMessageToClient(rfbClientPtr client,
     }
 
     std::fflush(stdout);
+}
+
+/* For session timeout implementation */
+void Server::sessionTimeOut(rfbClientPtr cl)
+{
+    auto currentTime = std::chrono::steady_clock::now();
+    ClientData* cd = (ClientData*)cl->clientData;
+
+    auto timeSinceLastActive = std::chrono::duration_cast<std::chrono::seconds>(
+        currentTime - cd->lastActivityTime);
+
+    /* Once the timeSinceLastActive surpasses the timeout value, the client
+     * will be disconnected */
+    if (timeSinceLastActive >= timeoutValue)
+    {
+        sendDisconnectMessageToClients(cl->screen, IVTP_STOP_SESSION_IMMEDIATE,
+                                       STOP_SESSION_TIMED_OUT);
+        rfbCloseClient(cl);
+    }
 }
 
 } // namespace ikvm

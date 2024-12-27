@@ -113,11 +113,6 @@ void Server::sendFrame()
     bool frame_sent = false;
     Server* serverdata = (Server*)server->screenData;
 
-    if (!data || pendingResize)
-    {
-        return;
-    }
-
     it = rfbGetClientIterator(server);
 
     while ((cl = rfbClientIteratorNext(it)))
@@ -125,25 +120,13 @@ void Server::sendFrame()
         ClientData* cd = (ClientData*)cl->clientData;
         rfbFramebufferUpdateMsg* fu = (rfbFramebufferUpdateMsg*)cl->updateBuf;
         auto i = video.buffersDone.front();
-        auto currentTime = std::chrono::steady_clock::now();
 
         if (!cd)
         {
             continue;
         }
 
-        /* For session Timeout Implementation*/
-        auto timeSinceLastActive =
-            std::chrono::duration_cast<std::chrono::seconds>(
-                currentTime - cd->lastActivityTime);
-
-        /* Once the timeSinceLastActive surpasses the timeout value, the client
-         * will be disconnected */
-        if (timeSinceLastActive >= timeoutValue)
-        {
-            rfbCloseClient(cl);
-            continue;
-        }
+        sessionTimeOut(cl);
 
         /* Disconnecting the clients immediately when KVM has been disabled from
          * WebUI*/
@@ -179,6 +162,11 @@ void Server::sendFrame()
         }
 
         if (!cd->needUpdate)
+        {
+            continue;
+        }
+
+        if (!data || pendingResize)
         {
             continue;
         }
@@ -329,7 +317,12 @@ void Server::clientFramebufferUpdateRequest(
     ClientData* cd = (ClientData*)cl->clientData;
 
     if (!cd)
+    {
         return;
+    }
+
+    /* Update the last activity time for session timeout */
+    cd->lastActivityTime = std::chrono::steady_clock::now();
 
     // Ignore the furMsg info. This service uses full frame update always.
     (void)furMsg;

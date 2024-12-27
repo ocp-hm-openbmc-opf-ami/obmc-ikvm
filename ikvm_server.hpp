@@ -168,6 +168,14 @@ class Server
      */
     static std::vector<unsigned char> createIVTPStopSessionPacket(
         unsigned short stopReason, unsigned short status);
+
+    /* @brief Disconnect the client if there is no activity from client side,
+     * Once the timeSinceLastActive surpasses the timeout value.
+     *
+     * @param[in] cl - Handle to the client object
+     */
+    static void sessionTimeOut(rfbClientPtr cl);
+
     /// @brief Denotes KVM permission status. true if full permission session
     /// already exist. false otherwise.
     bool kvmFullPrivSession = false;

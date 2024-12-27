@@ -33,11 +33,23 @@
 #include <memory>
 #include <variant>
 
+/* @brief Implementation of IVTP extension
+ *
+ * Extension to the Remote Framebuffer (RFB) protocol by incorporating AMI’s
+ * Intelligent Video Transfer Protocol (IVTP) to enhance communication
+ * capabilities between the KVM server and clients (H5Viewer & JViewer
+ *
+ * Refer MegaRAC OneTree™ - RFB Extension - Intelligent Video Transfer Protocol
+ * Design document for additional information
+ */
+
 /* Define macros for handling IVTP */
 #define SERVER_CUT_TEXT 3
 #define IVTP_STOP_SESSION_IMMEDIATE 0x0008
 
-#define STATUS_SUCCESS (0x00)
+/* Define macros for sending the error code as status */
+#define STOP_SESSION_TIMED_OUT 0x0009
+#define STOP_SESSION_IMMEDIATE 0x0002
 
 namespace ikvm
 {
