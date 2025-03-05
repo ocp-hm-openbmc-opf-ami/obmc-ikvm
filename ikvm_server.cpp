@@ -522,7 +522,7 @@ void Server::doResize()
 
         // let skipFrame round-down per interval of aspeed's I frame
         // delay video updates to give the client time to resize
-        cd->skipFrame = video.getFrameRate();
+	cd->skipFrame = ROUND_DOWN(video.getFrameRate(), 8);
     }
 
     rfbReleaseClientIterator(it);
