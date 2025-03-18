@@ -18,6 +18,7 @@ namespace ikvm
 const char* DBUS_PROPERTIES_INTERFACE = "org.freedesktop.DBus.Properties";
 
 std::atomic<bool> scrnshotFlag{false};
+std::atomic<bool> InitFlag{true};
 
 const std::string kvmObjPath = "/xyz/openbmc_project/Kvm";
 const std::string kvmServiceName = "xyz.openbmc_project.Kvm";

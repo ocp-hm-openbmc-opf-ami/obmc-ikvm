@@ -50,7 +50,7 @@ void Manager::statusUpdateThread(Manager* manager)
     while (manager->continueExecuting)
     {
         if (manager->server.wantsFrame() || scrnshotFlag.load() ||
-            videoRecFlag.load())
+            videoRecFlag.load() || InitFlag.load())
         {
             manager->video.start();
 
@@ -121,6 +121,11 @@ void Manager::statusUpdateThread(Manager* manager)
             else
             {
                 manager->video.releaseFrames();
+            }
+            if(InitFlag.load())
+            {
+                log<level::DEBUG>("Init flag Downed");
+                InitFlag.store(false);
             }
         }
         else

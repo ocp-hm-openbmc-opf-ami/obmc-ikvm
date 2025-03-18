@@ -78,6 +78,9 @@ extern const std::string bsodSennType;
 /*@brief Screenshot flag for capturing screenshot*/
 extern std::atomic<bool> scrnshotFlag;
 
+/*@brief flag for Initiating the Server*/
+extern std::atomic<bool> InitFlag;
+
 /*@brief Screenshot store paths*/
 extern const std::string bsodAsJpeg;
 extern const std::string bsodDir;

@@ -20,6 +20,12 @@ install_data(
     install_dir: '/etc/'
 )
 
+install_data(
+    'misc/connect_dummy_ipkvm_client.sh',
+    install_mode: 'rwxr-xr-x',
+    install_dir: get_option('bindir')
+)
+
 fs = import('fs')
 fs.copyfile(
     'misc/start-ipkvm.socket',
@@ -37,4 +43,13 @@ fs.copyfile(
         dependency('systemd').get_variable(
             'systemdsystemunitdir')
             /'start-ipkvm.service.d'
+)
+
+# Install Dummy-Client service
+fs.copyfile(
+    'misc/start-dummy-ipkvm-client.service',
+    install: true,
+    install_dir:
+        dependency('systemd').get_variable(
+            'systemdsystemunitdir')
 )

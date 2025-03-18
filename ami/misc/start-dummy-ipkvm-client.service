@@ -1,0 +1,14 @@
+[Unit]
+Description=Trigger Initial Connection for KVM
+After=start-ipkvm.socket start-ipkvm.service
+Requires=start-ipkvm.socket start-ipkvm.service
+PartOf=start-ipkvm.socket start-ipkvm.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/connect_dummy_ipkvm_client.sh
+RemainAfterExit=no
+SyslogIdentifier=dummy-kvm-client
+
+[Install]
+WantedBy=start-ipkvm.socket start-ipkvm.service
