@@ -138,6 +138,16 @@ class Monitor
 
     /*
      *
+     *  @brief D-Bus Signal Monitor for Host
+     *  Forced shutdown power Operation.
+     *
+     *  @param[in]conn Pointer to Dbus Connection
+     */
+    sdbusplus::bus::match_t hostForcedShutdownMonitor(
+        const std::shared_ptr<sdbusplus::asio::connection> conn);
+
+    /*
+     *
      *  @brief D-Bus Signal Monitor for LPC Events.
      *
      *  @param[in]conn Pointer to Dbus Connection
