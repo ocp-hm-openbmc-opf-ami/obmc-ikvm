@@ -54,6 +54,12 @@ const std::string nonCritInterface =
 
 const std::string lpcpath = "/xyz/openbmc_project/state/boot/raw0";
 const std::string lpcInterface = "xyz.openbmc_project.State.Boot.Raw";
+
+const std::string hostStateObjpath = "/xyz/openbmc_project/state/host0";
+const std::string hostStateInterface = "xyz.openbmc_project.State.Host";
+
+const std::string chassisObjpath = "/xyz/openbmc_project/state/chassis0";
+const std::string chassisInterface = "xyz.openbmc_project.State.Chassis";
 /*
  * osState value 2 indicates Run-time Critical Stop/BSOD
  * Data Reference

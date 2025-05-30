@@ -36,6 +36,7 @@ void Monitor::initialize(
         matchers.emplace_back(voltSensCritMonitor(conn));
         matchers.emplace_back(voltSensNonCritMonitor(conn));
         matchers.emplace_back(hostPowerOptMonitor(conn));
+        matchers.emplace_back(hostForcedShutdownMonitor(conn));
         matchers.emplace_back(lpcResetMonitor(conn));
     }
     catch (const std::exception& e)
@@ -52,19 +53,20 @@ void Monitor::AsyncRecordTrigger(
     conn->async_method_call(
         [this](const boost::system::error_code& ec,
                const std::string& response) {
-        if (ec)
-        {
-            log<level::ERR>("Failed to call method:  ");
-            return;
-        }
-        else if (response != "Success")
-        {
-            log<level::ERR>("Failed to call method:  ");
-            log<level::ERR>("Error : ", entry("ERROR=%s", response.c_str()));
-            return;
-        }
-        log<level::DEBUG>("Video record Triggered Succesfully");
-    },
+            if (ec)
+            {
+                log<level::ERR>("Failed to call method:  ");
+                return;
+            }
+            else if (response != "Success")
+            {
+                log<level::ERR>("Failed to call method:  ");
+                log<level::ERR>("Error : ",
+                                entry("ERROR=%s", response.c_str()));
+                return;
+            }
+            log<level::DEBUG>("Video record Triggered Succesfully");
+        },
         "xyz.openbmc_project.Kvm", "/xyz/openbmc_project/Kvm",
         "xyz.openbmc_project.Kvm.VideoRecord", "TriggerRecord", recType);
 }
@@ -89,20 +91,21 @@ sdbusplus::bus::match_t Monitor::bsodErrorEventMonitor(
                 conn->async_method_call(
                     [this](const boost::system::error_code& ec,
                            const std::string& response) {
-                    if (ec)
-                    {
-                        log<level::ERR>("Failed to call screenshot");
-                        return;
-                    }
-                    else if (response != "Success")
-                    {
-                        log<level::ERR>("Failed to call method:  ");
-                        log<level::ERR>("Error : ",
-                                        entry("ERROR=%s", response.c_str()));
-                        return;
-                    }
-                    log<level::DEBUG>("ScreenShot triggered successfully");
-                },
+                        if (ec)
+                        {
+                            log<level::ERR>("Failed to call screenshot");
+                            return;
+                        }
+                        else if (response != "Success")
+                        {
+                            log<level::ERR>("Failed to call method:  ");
+                            log<level::ERR>(
+                                "Error : ",
+                                entry("ERROR=%s", response.c_str()));
+                            return;
+                        }
+                        log<level::DEBUG>("ScreenShot triggered successfully");
+                    },
                     "xyz.openbmc_project.Kvm", "/xyz/openbmc_project/Kvm",
                     "xyz.openbmc_project.Kvm.Screenshot", "TriggerScreenshot",
                     scrnshotType);
@@ -328,8 +331,8 @@ sdbusplus::bus::match_t Monitor::hostPowerOptMonitor(
             triggerEvents = (uint32_t)
                 jsonData["VideoRecord"]["TriggerSettings"]["TriggeringEvents"];
 
-            if (!(triggerEvents.test(triggerEvent::chassisPowerOn)) ||
-                !(triggerEvents.test(triggerEvent::chassisPowerOff)) ||
+            if (!(triggerEvents.test(triggerEvent::chassisPowerOn)) &&
+                !(triggerEvents.test(triggerEvent::chassisPowerOff)) &&
                 !(triggerEvents.test(triggerEvent::chassisReset)))
             {
                 log<level::INFO>(
@@ -393,11 +396,69 @@ sdbusplus::bus::match_t Monitor::hostPowerOptMonitor(
     sdbusplus::bus::match_t hostPowerOptMatcher(
         static_cast<sdbusplus::bus::bus&>(*conn),
         "type='signal',member='PropertiesChanged',path_namespace='" +
-            tempObjPathNamespace + "',arg0namespace='" + critInterface + "'",
+            hostStateObjpath + "',arg0namespace='" + hostStateInterface + "'",
         std::move(hostPowerOptCallback));
 
     return hostPowerOptMatcher;
 }
+
+sdbusplus::bus::match_t Monitor::hostForcedShutdownMonitor(
+    const std::shared_ptr<sdbusplus::asio::connection> conn)
+{
+    auto hostForcedShutdowncallback = [conn, this](sdbusplus::message_t& msg) {
+        try
+        {
+            kvmDbus::loadJson();
+            triggerEvents = (uint32_t)
+                jsonData["VideoRecord"]["TriggerSettings"]["TriggeringEvents"];
+
+            if (!(triggerEvents.test(triggerEvent::chassisPowerOff)))
+            {
+                log<level::INFO>(
+                    "Power Off Operation: not Selected as Triggering event");
+                return;
+            }
+            std::string interfaceName;
+            boost::container::flat_map<std::string, std::variant<std::string>>
+                chassisPowerProperty;
+            msg.read(interfaceName, chassisPowerProperty);
+
+            for (const auto& entry : chassisPowerProperty)
+            {
+                if (entry.first == "RequestedPowerTransition")
+                {
+                    std::string transitType =
+                        std::get<std::string>(entry.second);
+
+                    if (transitType.find("Off") != std::string::npos)
+                    {
+                        if (!(triggerEvents.test(
+                                triggerEvent::chassisPowerOff)))
+                        {
+                            log<level::INFO>(
+                                "Power OFF: not Selected as Triggering event");
+                            return;
+                        }
+                    }
+                    AsyncRecordTrigger(conn, "Start");
+                }
+            }
+        }
+        catch (const std::exception& e)
+        {
+            log<level::ERR>("Error : ", entry("ERROR=%s", e.what()));
+        }
+    };
+
+    sdbusplus::bus::match_t hostForcedShutdownMatcher(
+        static_cast<sdbusplus::bus::bus&>(*conn),
+        "type='signal',member='PropertiesChanged',path_namespace='" +
+            chassisObjpath + "',arg0namespace='" + chassisInterface + "'",
+        std::move(hostForcedShutdowncallback));
+
+    return hostForcedShutdownMatcher;
+}
+
 sdbusplus::bus::match_t Monitor::lpcResetMonitor(
     const std::shared_ptr<sdbusplus::asio::connection> conn)
 {
@@ -428,8 +489,8 @@ sdbusplus::bus::match_t Monitor::lpcResetMonitor(
 
                 if (std::holds_alternative<TayPropertyType>(value))
                 {
-                    const auto& [timestamp,
-                                 byteArray] = std::get<TayPropertyType>(value);
+                    const auto& [timestamp, byteArray] =
+                        std::get<TayPropertyType>(value);
 
                     if (timestamp == 0 || byteArray.empty())
                     {

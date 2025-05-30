@@ -104,6 +104,12 @@ extern const std::string nonCritInterface;
 extern const std::string lpcpath;
 extern const std::string lpcInterface;
 
+extern const std::string hostStateObjpath;
+extern const std::string hostStateInterface;
+
+extern const std::string chassisObjpath;
+extern const std::string chassisInterface;
+
 /*
  * osState value 2 indicates Run-time Critical Stop/BSOD
  * Data Reference
