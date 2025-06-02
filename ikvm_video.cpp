@@ -20,6 +20,8 @@
 #include <xyz/openbmc_project/Common/File/error.hpp>
 
 #define V4L2_PIX_FMT_FLAG_PARTIAL_JPG 0x00000004
+#define DEFAULT_WIDTH 800
+#define DEFAULT_HEIGHT 600
 
 namespace ikvm
 {
@@ -518,15 +520,17 @@ void Video::start()
                             entry("ERROR=%s", strerror(errno)));
     }
 
-    if (getSignalStatus() == V4L2_IN_ST_NO_SIGNAL) // Updating the width and height according to the power-off or no-signal JPG image
+    // Updating the width and height according to the power-off or no-signal JPG
+    // image
+    if (getSignalStatus() == V4L2_IN_ST_NO_SIGNAL)
     {
-	    height  = 600;
-	    width = 800;
+        height = DEFAULT_HEIGHT;
+        width = DEFAULT_WIDTH;
     }
     else
     {
-	    height = fmt.fmt.pix.height;
-	    width = fmt.fmt.pix.width;
+        height = fmt.fmt.pix.height;
+        width = fmt.fmt.pix.width;
     }
     pixelformat = fmt.fmt.pix.pixelformat;
 
@@ -534,6 +538,13 @@ void Video::start()
     {
         log<level::ERR>("Pixel Format not supported",
                         entry("PIXELFORMAT=%d", pixelformat));
+    }
+
+    // Reset the width and height to their default values when the KVM connects
+    if (width != DEFAULT_WIDTH && height != DEFAULT_HEIGHT)
+    {
+        height = DEFAULT_HEIGHT;
+        width = DEFAULT_WIDTH;
     }
 
     resize();
