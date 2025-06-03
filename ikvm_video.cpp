@@ -222,9 +222,18 @@ bool Video::needsResize()
             log<level::ERR>("Failed to get new resolution",
                             entry("WIDTH=%d", width),
                             entry("HEIGHT=%d", height));
-            elog<Open>(
-                xyz::openbmc_project::Common::File::Open::ERRNO(-EPROTO),
-                xyz::openbmc_project::Common::File::Open::PATH(path.c_str()));
+            try
+            {
+                elog<Open>(
+                    xyz::openbmc_project::Common::File::Open::ERRNO(-EPROTO),
+                    xyz::openbmc_project::Common::File::Open::PATH(
+                        path.c_str()));
+            }
+            catch (const std::exception& e)
+            {
+                log<level::ERR>("Exception caught during open logging",
+                                entry("ERROR=%s", e.what()));
+            }
         }
 
         buffersDone.clear();
@@ -269,11 +278,19 @@ void Video::resize()
         {
             log<level::ERR>("Failed to stop streaming",
                             entry("ERROR=%s", strerror(errno)));
-            elog<ReadFailure>(
-                xyz::openbmc_project::Common::Device::ReadFailure::
-                    CALLOUT_ERRNO(errno),
-                xyz::openbmc_project::Common::Device::ReadFailure::
-                    CALLOUT_DEVICE_PATH(path.c_str()));
+            try
+            {
+                elog<ReadFailure>(
+                    xyz::openbmc_project::Common::Device::ReadFailure::
+                        CALLOUT_ERRNO(errno),
+                    xyz::openbmc_project::Common::Device::ReadFailure::
+                        CALLOUT_DEVICE_PATH(path.c_str()));
+            }
+            catch (const std::exception& e)
+            {
+                log<level::ERR>("Exception caught during ReadFailure logging",
+                                entry("ERROR=%s", e.what()));
+            }
         }
     }
 
@@ -300,11 +317,19 @@ void Video::resize()
         {
             log<level::ERR>("Failed to zero streaming buffers",
                             entry("ERROR=%s", strerror(errno)));
-            elog<ReadFailure>(
-                xyz::openbmc_project::Common::Device::ReadFailure::
-                    CALLOUT_ERRNO(errno),
-                xyz::openbmc_project::Common::Device::ReadFailure::
-                    CALLOUT_DEVICE_PATH(path.c_str()));
+            try
+            {
+                elog<ReadFailure>(
+                    xyz::openbmc_project::Common::Device::ReadFailure::
+                        CALLOUT_ERRNO(errno),
+                    xyz::openbmc_project::Common::Device::ReadFailure::
+                        CALLOUT_DEVICE_PATH(path.c_str()));
+            }
+            catch (const std::exception& e)
+            {
+                log<level::ERR>("Exception caught during ReadFailure logging",
+                                entry("ERROR=%s", e.what()));
+            }
         }
 
         memset(&timings, 0, sizeof(v4l2_dv_timings));
@@ -322,11 +347,19 @@ void Video::resize()
         {
             log<level::ERR>("Failed to set timings",
                             entry("ERROR=%s", strerror(errno)));
-            elog<ReadFailure>(
-                xyz::openbmc_project::Common::Device::ReadFailure::
-                    CALLOUT_ERRNO(errno),
-                xyz::openbmc_project::Common::Device::ReadFailure::
-                    CALLOUT_DEVICE_PATH(path.c_str()));
+            try
+            {
+                elog<ReadFailure>(
+                    xyz::openbmc_project::Common::Device::ReadFailure::
+                        CALLOUT_ERRNO(errno),
+                    xyz::openbmc_project::Common::Device::ReadFailure::
+                        CALLOUT_DEVICE_PATH(path.c_str()));
+            }
+            catch (const std::exception& e)
+            {
+                log<level::ERR>("Exception caught during ReadFailure logging",
+                                entry("ERROR=%s", e.what()));
+            }
         }
 
         buffers.clear();
@@ -341,11 +374,19 @@ void Video::resize()
     {
         log<level::ERR>("Failed to request streaming buffers",
                         entry("ERROR=%s", strerror(errno)));
-        elog<ReadFailure>(
-            xyz::openbmc_project::Common::Device::ReadFailure::CALLOUT_ERRNO(
-                errno),
-            xyz::openbmc_project::Common::Device::ReadFailure::
-                CALLOUT_DEVICE_PATH(path.c_str()));
+        try
+        {
+            elog<ReadFailure>(
+                xyz::openbmc_project::Common::Device::ReadFailure::
+                    CALLOUT_ERRNO(errno),
+                xyz::openbmc_project::Common::Device::ReadFailure::
+                    CALLOUT_DEVICE_PATH(path.c_str()));
+        }
+        catch (const std::exception& e)
+        {
+            log<level::ERR>("Exception caught during ReadFailure logging",
+                            entry("ERROR=%s", e.what()));
+        }
     }
 
     buffers.resize(req.count);
@@ -364,11 +405,19 @@ void Video::resize()
         {
             log<level::ERR>("Failed to query buffer",
                             entry("ERROR=%s", strerror(errno)));
-            elog<ReadFailure>(
-                xyz::openbmc_project::Common::Device::ReadFailure::
-                    CALLOUT_ERRNO(errno),
-                xyz::openbmc_project::Common::Device::ReadFailure::
-                    CALLOUT_DEVICE_PATH(path.c_str()));
+            try
+            {
+                elog<ReadFailure>(
+                    xyz::openbmc_project::Common::Device::ReadFailure::
+                        CALLOUT_ERRNO(errno),
+                    xyz::openbmc_project::Common::Device::ReadFailure::
+                        CALLOUT_DEVICE_PATH(path.c_str()));
+            }
+            catch (const std::exception& e)
+            {
+                log<level::ERR>("Exception caught during ReadFailure logging",
+                                entry("ERROR=%s", e.what()));
+            }
         }
 
         buffers[i].data = mmap(NULL, buf.length, PROT_READ | PROT_WRITE,
@@ -377,11 +426,19 @@ void Video::resize()
         {
             log<level::ERR>("Failed to mmap buffer",
                             entry("ERROR=%s", strerror(errno)));
-            elog<ReadFailure>(
-                xyz::openbmc_project::Common::Device::ReadFailure::
-                    CALLOUT_ERRNO(errno),
-                xyz::openbmc_project::Common::Device::ReadFailure::
-                    CALLOUT_DEVICE_PATH(path.c_str()));
+            try
+            {
+                elog<ReadFailure>(
+                    xyz::openbmc_project::Common::Device::ReadFailure::
+                        CALLOUT_ERRNO(errno),
+                    xyz::openbmc_project::Common::Device::ReadFailure::
+                        CALLOUT_DEVICE_PATH(path.c_str()));
+            }
+            catch (const std::exception& e)
+            {
+                log<level::ERR>("Exception caught during ReadFailure logging",
+                                entry("ERROR=%s", e.what()));
+            }
         }
 
         buffers[i].size = buf.length;
@@ -391,11 +448,19 @@ void Video::resize()
         {
             log<level::ERR>("Failed to queue buffer",
                             entry("ERROR=%s", strerror(errno)));
-            elog<ReadFailure>(
-                xyz::openbmc_project::Common::Device::ReadFailure::
-                    CALLOUT_ERRNO(errno),
-                xyz::openbmc_project::Common::Device::ReadFailure::
-                    CALLOUT_DEVICE_PATH(path.c_str()));
+            try
+            {
+                elog<ReadFailure>(
+                    xyz::openbmc_project::Common::Device::ReadFailure::
+                        CALLOUT_ERRNO(errno),
+                    xyz::openbmc_project::Common::Device::ReadFailure::
+                        CALLOUT_DEVICE_PATH(path.c_str()));
+            }
+            catch (const std::exception& e)
+            {
+                log<level::ERR>("Exception caught during ReadFailure logging",
+                                entry("ERROR=%s", e.what()));
+            }
         }
 
         buffers[i].queued = true;
@@ -406,11 +471,20 @@ void Video::resize()
     {
         log<level::ERR>("Failed to start streaming",
                         entry("ERROR=%s", strerror(errno)));
-        elog<ReadFailure>(
-            xyz::openbmc_project::Common::Device::ReadFailure::CALLOUT_ERRNO(
-                errno),
-            xyz::openbmc_project::Common::Device::ReadFailure::
-                CALLOUT_DEVICE_PATH(path.c_str()));
+
+        try
+        {
+            elog<ReadFailure>(
+                xyz::openbmc_project::Common::Device::ReadFailure::
+                    CALLOUT_ERRNO(errno),
+                xyz::openbmc_project::Common::Device::ReadFailure::
+                    CALLOUT_DEVICE_PATH(path.c_str()));
+        }
+        catch (const std::exception& e)
+        {
+            log<level::ERR>("Exception caught during ReadFailure logging",
+                            entry("ERROR=%s", e.what()));
+        }
     }
 }
 
@@ -437,9 +511,17 @@ void Video::start()
         log<level::ERR>("Failed to open video device",
                         entry("PATH=%s", path.c_str()),
                         entry("ERROR=%s", strerror(errno)));
-        elog<Open>(
-            xyz::openbmc_project::Common::File::Open::ERRNO(errno),
-            xyz::openbmc_project::Common::File::Open::PATH(path.c_str()));
+        try
+        {
+            elog<Open>(
+                xyz::openbmc_project::Common::File::Open::ERRNO(errno),
+                xyz::openbmc_project::Common::File::Open::PATH(path.c_str()));
+        }
+        catch (const std::exception& e)
+        {
+            log<level::ERR>("Exception caught during Open logging",
+                            entry("ERROR=%s", e.what()));
+        }
     }
 
     memset(&cap, 0, sizeof(v4l2_capability));
@@ -448,20 +530,37 @@ void Video::start()
     {
         log<level::ERR>("Failed to query video device capabilities",
                         entry("ERROR=%s", strerror(errno)));
-        elog<ReadFailure>(
-            xyz::openbmc_project::Common::Device::ReadFailure::CALLOUT_ERRNO(
-                errno),
-            xyz::openbmc_project::Common::Device::ReadFailure::
-                CALLOUT_DEVICE_PATH(path.c_str()));
+
+        try
+        {
+            elog<ReadFailure>(
+                xyz::openbmc_project::Common::Device::ReadFailure::
+                    CALLOUT_ERRNO(errno),
+                xyz::openbmc_project::Common::Device::ReadFailure::
+                    CALLOUT_DEVICE_PATH(path.c_str()));
+        }
+        catch (const std::exception& e)
+        {
+            log<level::ERR>("Exception caught during ReadFailure logging",
+                            entry("ERROR=%s", e.what()));
+        }
     }
 
     if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE) ||
         !(cap.capabilities & V4L2_CAP_STREAMING))
     {
         log<level::ERR>("Video device doesn't support this application");
-        elog<Open>(
-            xyz::openbmc_project::Common::File::Open::ERRNO(errno),
-            xyz::openbmc_project::Common::File::Open::PATH(path.c_str()));
+        try
+        {
+            elog<Open>(
+                xyz::openbmc_project::Common::File::Open::ERRNO(errno),
+                xyz::openbmc_project::Common::File::Open::PATH(path.c_str()));
+        }
+        catch (const std::exception& e)
+        {
+            log<level::ERR>("Exception caught during Open logging",
+                            entry("ERROR=%s", e.what()));
+        }
     }
 
     memset(&fmt, 0, sizeof(v4l2_format));
@@ -471,11 +570,20 @@ void Video::start()
     {
         log<level::ERR>("Failed to query video device format",
                         entry("ERROR=%s", strerror(errno)));
-        elog<ReadFailure>(
-            xyz::openbmc_project::Common::Device::ReadFailure::CALLOUT_ERRNO(
-                errno),
-            xyz::openbmc_project::Common::Device::ReadFailure::
-                CALLOUT_DEVICE_PATH(path.c_str()));
+
+        try
+        {
+            elog<ReadFailure>(
+                xyz::openbmc_project::Common::Device::ReadFailure::
+                    CALLOUT_ERRNO(errno),
+                xyz::openbmc_project::Common::Device::ReadFailure::
+                    CALLOUT_DEVICE_PATH(path.c_str()));
+        }
+        catch (const std::exception& e)
+        {
+            log<level::ERR>("Exception caught during ReadFailure logging",
+                            entry("ERROR=%s", e.what()));
+        }
     }
 
     switch (format)
@@ -492,11 +600,19 @@ void Video::start()
     {
         log<level::ERR>("Failed to set video device format",
                         entry("ERROR=%s", strerror(errno)));
-        elog<ReadFailure>(
-            xyz::openbmc_project::Common::Device::ReadFailure::CALLOUT_ERRNO(
-                errno),
-            xyz::openbmc_project::Common::Device::ReadFailure::
-                CALLOUT_DEVICE_PATH(path.c_str()));
+        try
+        {
+            elog<ReadFailure>(
+                xyz::openbmc_project::Common::Device::ReadFailure::
+                    CALLOUT_ERRNO(errno),
+                xyz::openbmc_project::Common::Device::ReadFailure::
+                    CALLOUT_DEVICE_PATH(path.c_str()));
+        }
+        catch (const std::exception& e)
+        {
+            log<level::ERR>("Exception caught during ReadFailure logging",
+                            entry("ERROR=%s", e.what()));
+        }
     }
 
     memset(&sparm, 0, sizeof(v4l2_streamparm));
