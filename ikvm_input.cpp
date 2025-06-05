@@ -569,7 +569,17 @@ bool Input::writeKeyboard(const uint8_t* report)
 
             break;
         }
-
+        /* Coverity reported - Using uninitialized value "lk._M_owns" when
+         * calling "unlock".*/
+        /* Reason for false positive: The Input constructor is a member of the
+         * Manager class. The Manager class is instantiated in the main
+         * function. When the main function is called, it initializes Manager,
+         * which in turn calls the Input constructor and initializes its members
+         * and functions. lk is an object of Mutex. _M_device and _M_owns are
+         * private members, meaning they cannot be accessed from other classes.
+         * When the lk object is created, the lock() call occurs, locking
+         * Keymutex and setting _M_owns to true.*/
+        /* coverity[uninit_use_in_call : FALSE] */
         lk.unlock();
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
         lk.lock();
@@ -601,7 +611,17 @@ void Input::writePointer(const uint8_t* report)
 
             break;
         }
-
+        /* Coverity reported - Using uninitialized value "lk._M_owns" when
+         * calling "unlock".*/
+        /* Reason for false positive: The Input constructor is a member of the
+         * Manager class. The Manager class is instantiated in the main
+         * function. When the main function is called, it initializes Manager,
+         * which in turn calls the Input constructor and initializes its members
+         * and functions. lk is an object of Mutex. _M_device and _M_owns are
+         * private members, meaning they cannot be accessed from other classes.
+         * When the lk object is created, the lock() call occurs, locking
+         * Keymutex and setting _M_owns to true.*/
+        /* coverity[uninit_use_in_call : FALSE] */
         lk.unlock();
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
         lk.lock();
