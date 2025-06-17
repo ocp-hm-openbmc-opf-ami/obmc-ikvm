@@ -321,9 +321,6 @@ void Server::clientFramebufferUpdateRequest(
         return;
     }
 
-    /* Update the last activity time for session timeout */
-    cd->lastActivityTime = std::chrono::steady_clock::now();
-
     // Ignore the furMsg info. This service uses full frame update always.
     (void)furMsg;
 
