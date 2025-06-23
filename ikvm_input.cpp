@@ -168,7 +168,8 @@ void Input::keyEvent(rfbBool down, rfbKeySym key, rfbClientPtr cl)
     cd->lastActivityTime = std::chrono::steady_clock::now();
     Input* input = cd->input;
     bool sendKeyboard = false;
-
+    static bool isCapsLockActive = false;
+    static bool modifierkeypressed = false;
     if (input->keyboardFd < 0)
     {
         return;
@@ -179,9 +180,38 @@ void Input::keyEvent(rfbBool down, rfbKeySym key, rfbClientPtr cl)
     if (down)
     {
         uint8_t sc = keyToScancode(key);
-
         if (sc)
         {
+            // To Handle TightVNC + Caps + shift case .
+            // Reset the shift Modifier already enabled in case of TightVNC
+            if (modifierkeypressed && cl->tightEncodingSupport &&
+                cl->enableCursorPosUpdates)
+            {
+                if (key >= 'a' && key <= 'z')
+                {
+                    if (input->keysDown.find(key) == input->keysDown.end())
+                    {
+                        input->keyboardReport[0] &= ~0x02;
+                        sendKeyboard = true;
+                    }
+                }
+            }
+            else if (cl->tightEncodingSupport && cl->enableCursorPosUpdates &&
+                     (key >= 'A' && key <= 'Z'))
+            {
+                // To Handle TightVNC + Caps case.
+                //  Set the shiftmodifier if TightVNC client, To send uppercase
+                //  letter
+                if (!modifierkeypressed)
+                {
+                    if (!(input->keyboardReport[0] & 0x02))
+                    {
+                        input->keyboardReport[0] |= 0x02;
+                        isCapsLockActive = true;
+                        sendKeyboard = true;
+                    }
+                }
+            }
             if (input->keysDown.find(key) == input->keysDown.end())
             {
                 for (unsigned int i = 2; i < KEY_REPORT_LENGTH; ++i)
@@ -196,34 +226,43 @@ void Input::keyEvent(rfbBool down, rfbKeySym key, rfbClientPtr cl)
                 }
             }
         }
+
         else
         {
             uint8_t mod = keyToMod(key);
-
             if (mod)
             {
+                modifierkeypressed = true;
                 input->keyboardReport[0] |= mod;
                 sendKeyboard = true;
             }
         }
     }
+
     else
     {
         auto it = input->keysDown.find(key);
-
         if (it != input->keysDown.end())
         {
             input->keyboardReport[it->second] = 0;
             input->keysDown.erase(it);
             sendKeyboard = true;
+            // To Handle TightVNC + Caps case.
+            // Reset the shift modifier if it was applied in TightVNC
+            if (cl->tightEncodingSupport && cl->enableCursorPosUpdates &&
+                (key >= 'A' && key <= 'Z') && isCapsLockActive)
+            {
+                isCapsLockActive = false;
+                input->keyboardReport[0] &= ~0x02;
+            }
         }
         else
         {
             uint8_t mod = keyToMod(key);
-
             if (mod)
             {
                 input->keyboardReport[0] &= ~mod;
+                modifierkeypressed = false;
                 sendKeyboard = true;
             }
         }
