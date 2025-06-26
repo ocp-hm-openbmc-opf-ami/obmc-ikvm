@@ -503,7 +503,6 @@ void Video::start()
         return;
     }
 
-    input.sendWakeupPacket();
 
     fd = open(path.c_str(), O_RDWR);
     if (fd < 0)
