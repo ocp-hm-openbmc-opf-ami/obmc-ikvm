@@ -106,6 +106,7 @@ void Server::run()
 
 void Server::sendFrame()
 {
+    static int noValidDataFrameCount = NO_VALID_FRAME_COUNT_RESET;
     char* data = video.getData();
     rfbClientIteratorPtr it;
     rfbClientPtr cl;
@@ -168,8 +169,24 @@ void Server::sendFrame()
 
         if (!data || pendingResize)
         {
+            if (isAst2700Platform)
+            {
+                if (!data)
+                {
+                    noValidDataFrameCount++;
+                }
+
+                if (noValidDataFrameCount > NO_VALID_FRAME_COUNT_THRESHOLD)
+                {
+                    noValidDataFrameCount = NO_VALID_FRAME_COUNT_RESET;
+                    video.restart();
+                    break;
+                }
+            }
             continue;
         }
+
+        noValidDataFrameCount = NO_VALID_FRAME_COUNT_RESET;
 
         if (!(data[video.getFrameSize(i) - 2] == 255 &&
               data[video.getFrameSize(i) - 1] == 217))
@@ -307,7 +324,7 @@ void Server::sendFrame()
 
     rfbReleaseClientIterator(it);
 
-    if (frame_sent)
+    if (frame_sent || isAst2700Platform)
         video.releaseFrames();
 }
 

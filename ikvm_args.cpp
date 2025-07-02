@@ -1,10 +1,10 @@
 #include "ikvm_args.hpp"
+#include "ami/include/ikvm_utils.hpp"
 
 #include <getopt.h>
 #include <rfb/rfb.h>
 #include <stdio.h>
 #include <stdlib.h>
-
 namespace ikvm
 {
 Args::Args(int argc, char* argv[]) :
@@ -38,6 +38,11 @@ Args::Args(int argc, char* argv[]) :
                 format = (int)strtol(optarg, NULL, 0);
                 if (format != 0 && format != 2)
                     format = 0;
+                // Force full screen JPEG for 2700
+                if(fs::exists(usbVirtualHubPath2700A0) || fs::exists(usbVirtualHubPath2700A1)) {
+                    format = 0;
+                    isAst2700Platform = true;
+                }
                 break;
             case 'h':
                 printUsage();
