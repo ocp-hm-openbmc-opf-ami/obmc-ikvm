@@ -109,9 +109,11 @@ class Input
     /* @brief Path to the USB virtual hub */
     static constexpr const char* usbVirtualHubPath =
         "/sys/bus/platform/devices/1e6a0000.usb-vhub";
-    /* @brief Path to the AST2700 USB virtual hub */
-    static constexpr const char* usbVirtualHubPath2700 =
+    /* @brief Path to the AST2700 A0 and A1 USB virtual hub */
+    static constexpr const char* usbVirtualHubPath2700A0 =
         "/sys/bus/platform/devices/12011000.usb-vhub";
+    static constexpr const char* usbVirtualHubPath2700A1 =
+        "/sys/bus/platform/devices/12060000.usb-vhub";
     /* @brief Retry limit for writing an HID report */
     static constexpr int HID_REPORT_RETRY_MAX = 5;
     /*

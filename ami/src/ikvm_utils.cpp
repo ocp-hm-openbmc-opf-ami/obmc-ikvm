@@ -86,6 +86,9 @@ std::string shareType = "nfs";
 std::string options = "";
 bool recordToRemote = false;
 bool active = false;
+
+bool isAst2700Platform = false;
+
 /*
  * ===============================================================
  *  <<<<<<<<<<<<<<< UTILITY METHOD DEFINATIONS >>>>>>>>>>>>>>>>>>

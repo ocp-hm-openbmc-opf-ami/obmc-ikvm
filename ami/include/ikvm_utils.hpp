@@ -155,6 +155,16 @@ extern std::string options;
 extern bool recordToRemote;
 extern bool active;
 
+/*@brief 2700 specific Config. */
+static constexpr const char* usbVirtualHubPath2700A0 =
+        "/sys/bus/platform/devices/12011000.usb-vhub";
+static constexpr const char* usbVirtualHubPath2700A1 =
+        "/sys/bus/platform/devices/12060000.usb-vhub";
+
+static constexpr int NO_VALID_FRAME_COUNT_THRESHOLD = 2;
+static constexpr int NO_VALID_FRAME_COUNT_RESET = 0;
+extern bool isAst2700Platform;
+
 /*
  * ==========================================================
  * <<<<<<<<<<<<<<<<<< UTILITY METHODS >>>>>>>>>>>>>>>>>>>>>>
