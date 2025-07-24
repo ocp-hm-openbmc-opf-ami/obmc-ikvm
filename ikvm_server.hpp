@@ -5,6 +5,15 @@
 #include "ikvm_input.hpp"
 #include "ikvm_video.hpp"
 
+#define DEFAULT_SID 0         // Default Session ID
+#define DEFAULT_IP "~"        // Loopback IP address
+#define USER_NAME "local"     // Default user
+#define KVM 0                 // KVM session type
+#define PRIV_LEVEL_ADMIN 0x04 // Privilege level for admin
+#define KVM_DEFAULT_USER_ID 0 // Default user ID
+#define LOGOUT 1              // Reason for session unregister
+#define MOUNTING_METHOD ""    // Empty mounting method
+
 namespace ikvm
 {
 /*
@@ -27,11 +36,26 @@ class Server
          * @param[in] i - Pointer to Input object
          */
 
+        enum class ClientType
+        {
+            UNKNOWN = 0,
+            H5Viewer,
+            JViewer,
+            VNC,
+        };
         ClientData(int s, Input* i) : skipFrame(s), input(i), last_crc{-1}
         {
             needUpdate = false;
             lastActivityTime = std::chrono::steady_clock::now();
-            sessionId = 0;
+            sessionId = DEFAULT_SID;
+            isNewSession = false;
+            webSessionId = DEFAULT_SID;
+            clientType = ClientType::UNKNOWN;
+            clientInfo = std::make_tuple(DEFAULT_SID, DEFAULT_IP, USER_NAME,
+                                         KVM, PRIV_LEVEL_ADMIN,
+                                         KVM_DEFAULT_USER_ID, MOUNTING_METHOD);
+            clientInfoReceived = false;
+            ivtpWaitCycles = 0;
         }
         ~ClientData() = default;
         ClientData(const ClientData&) = default;
@@ -44,6 +68,13 @@ class Server
         bool needUpdate;
         int64_t last_crc;
         uint8_t sessionId;
+        bool isNewSession;
+        uint8_t webSessionId;
+        ClientType clientType;
+        sessionInfo clientInfo;
+        bool clientInfoReceived;
+        uint32_t ivtpWaitCycles;
+
         /* @brief Getting last activity time based on key and pointer event */
         std::chrono::time_point<std::chrono::steady_clock> lastActivityTime;
     };
@@ -97,6 +128,28 @@ class Server
      */
     static void clientFramebufferUpdateRequest(
         rfbClientPtr cl, rfbFramebufferUpdateRequestMsg* furMsg);
+
+    /*
+     * @brief Handler for Client cut text message
+     *
+     * @param[in] cl - Handle to the client object
+     * @param[in] text - CCT(ClientCutText) message
+     * @param[in] length - Length of the CCT message
+     */
+    static void clientCutTextMsgHandler(rfbClientPtr cl, const char* text,
+                                        uint32_t length);
+
+    /*
+     * @brief Parser for IVTP Message.
+     *
+     * @param[in] buffer - Pointer to the buffer containing the IVTP message
+     * @param[in] totalLength - Total length of the IVTP message
+     *
+     * @return Parsed IVTPMessage object
+     */
+    static IVTPMessage parseIvtpBuffer(const char* buffer,
+                                       uint32_t totalLength);
+
     /*
      * @brief Handler for a client disconnecting
      *
@@ -175,6 +228,13 @@ class Server
      * @param[in] cl - Handle to the client object
      */
     static void sessionTimeOut(rfbClientPtr cl);
+
+    /* @brief Register Client to session Manger Service,
+     * based on the information provided by the client
+     *
+     * @param[in] cl - Handle to the client object
+     */
+    static void sessionRegister(rfbClientPtr cl);
 
     /// @brief Denotes KVM permission status. true if full permission session
     /// already exist. false otherwise.

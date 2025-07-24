@@ -52,6 +52,7 @@ const std::string smgrService = "xyz.openbmc_project.SessionManager";
 const std::string smgrObjPath = "/xyz/openbmc_project/SessionManager";
 const std::string smgrIface = "xyz.openbmc_project.SessionManager";
 const std::string smgrKVMIface = "xyz.openbmc_project.SessionManager.Kvm";
+const std::string smgrWebIface = "xyz.openbmc_project.SessionManager.Web";
 
 const std::string serviceMgrService =
     "xyz.openbmc_project.Control.Service.Manager";
@@ -330,6 +331,55 @@ void getRemoteConf()
                         entry("ERROR=%s", e.what()));
         return;
     }
+}
+
+uint8_t extractSessionId(const std::string& infoStr)
+{
+    try
+    {
+        static const std::regex sessionPattern(R"(session_(\d+))");
+        std::smatch match;
+
+        if (!std::regex_search(infoStr, match, sessionPattern))
+        {
+            throw std::invalid_argument(
+                "Expected format 'session_N' not found.");
+        }
+
+        int sessionId = std::stoi(match[1].str());
+        if (sessionId < 0 || sessionId > 255)
+            throw std::out_of_range("Session ID must be in range 0-255.");
+
+        return static_cast<uint8_t>(sessionId);
+    }
+    catch (const std::exception& e)
+    {
+        log<level::ERR>("extractSessionId exception",
+                        entry("ERROR=%s", e.what()));
+        return 0; // Return default session ID on error
+    }
+}
+
+inline std::string trim(const std::string& s) {
+    auto start = s.find_first_not_of(" \t");
+    auto end = s.find_last_not_of(" \t");
+    return (start == std::string::npos) ? "" : s.substr(start, end - start + 1);
+}
+
+// Parse "key=value ,key2=value2" into a map
+std::map<std::string, std::string> parseKeyValueString(const std::string& input) {
+    std::map<std::string, std::string> result;
+    std::istringstream ss(input);
+    std::string pair;
+    while (std::getline(ss, pair, ',')) {
+        auto eq = pair.find('=');
+        if (eq != std::string::npos) {
+            std::string key = trim(pair.substr(0, eq));
+            std::string value = trim(pair.substr(eq + 1));
+            result[key] = value;
+        }
+    }
+    return result;
 }
 
 } // namespace ikvm
