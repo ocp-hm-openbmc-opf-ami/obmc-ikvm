@@ -132,6 +132,8 @@ void Server::sessionTimeOut(rfbClientPtr cl)
         sendDisconnectMessageToClients(cl->screen, IVTP_STOP_SESSION_IMMEDIATE,
                                        STOP_SESSION_TIMED_OUT);
         rfbCloseClient(cl);
+        // Log the event of session timeout
+        ikvm::eventLogSupport("OpenBMC.0.1.KVMSessionTimeout");
     }
 }
 

@@ -68,6 +68,12 @@ const std::string pwrStatObjPath = "/xyz/openbmc_project/state/chassis0";
 const std::string pwrStatIface = "xyz.openbmc_project.State.Chassis";
 std::string hostPowerState = "Unknown";
 
+const std::string eventLogService = "xyz.openbmc_project.Logging";
+const std::string eventLogObjPath = "/xyz/openbmc_project/logging";
+const std::string eventLogIface = "xyz.openbmc_project.Logging.Create";
+const std::string eventlogServerity =
+    "xyz.openbmc_project.Logging.Entry.Level.Informational";
+
 bool isKvmDisabled = false;
 
 const char* NO_SIGNAL_IMG_PATH = "/etc/NO_SIGNAL.jpg";
@@ -380,6 +386,29 @@ std::map<std::string, std::string> parseKeyValueString(const std::string& input)
         }
     }
     return result;
+}
+
+void eventLogSupport(const std::string& msg)
+{
+    try
+    {
+        auto bus = sdbusplus::bus::new_default_system();
+        sdbusplus::message::message m = bus.new_method_call(
+            eventLogService.c_str(), eventLogObjPath.c_str(),
+            eventLogIface.c_str(), "Create");
+        m.append(msg, eventlogServerity.c_str(),
+                 std::map<std::string, std::string>());
+        bus.call(m);
+    }
+    catch (const sdbusplus::exception::SdBusError& e)
+    {
+        log<level::ERR>("D-Bus call Failed", entry("ERROR=%s", e.what()));
+    }
+    catch (const std::exception& e)
+    {
+        log<level::ERR>("Error in Event Log support",
+                        entry("ERROR=%s", e.what()));
+    }
 }
 
 } // namespace ikvm

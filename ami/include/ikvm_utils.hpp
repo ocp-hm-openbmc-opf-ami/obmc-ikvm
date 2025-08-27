@@ -153,6 +153,12 @@ extern std::vector<uint8_t> activeSessionIDs;
 extern const std::string pwrStatService;
 extern const std::string pwrStatObjPath;
 extern const std::string pwrStatIface;
+
+/*@brief Event Log D-Bus details */
+extern const std::string eventLogService;
+extern const std::string eventLogObjPath;
+extern const std::string eventLogIface;
+
 /* @brief Holds the Host Power status
  *
  * @param[value] "Off": The host is powered off
@@ -247,5 +253,12 @@ std::string trim(const std::string& s);
  * @return A map where keys are strings and values are strings.
  */
 std::map<std::string, std::string> parseKeyValueString(const std::string& input);
+
+/*
+ * @brief Creates an event log entry with the given message.
+ *
+ * @param[in] msg - The message to log.
+ */
+void eventLogSupport(const std::string& msg);
 
 } // namespace ikvm

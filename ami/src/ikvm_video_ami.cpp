@@ -233,6 +233,9 @@ void Video::videoRecord(Video* video)
 
         log<level::INFO>("recording Started...");
 
+        // Log the event of video recording start
+        ikvm::eventLogSupport("OpenBMC.0.1.KVMAVRStart");
+
         recStart = std::chrono::steady_clock::now();
         while (videoRecFlag.load())
         {
@@ -268,6 +271,8 @@ void Video::videoRecord(Video* video)
             {
                 videoRecFlag.store(false);
                 log<level::INFO>("recording stopped...");
+                // Log the event of video recording stop
+                ikvm::eventLogSupport("OpenBMC.0.1.KVMAVRStop");
             }
         }
         screenRec.close();

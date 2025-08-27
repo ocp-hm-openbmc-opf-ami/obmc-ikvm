@@ -172,6 +172,8 @@ void Server::sendFrame()
         {
             handleKVMServiceDisabled(cl->screen);
             rfbCloseClient(cl);
+            // Log the event of KVM redirection being disabled
+            ikvm::eventLogSupport("OpenBMC.0.1.KVMRedirectionDisabled");
             continue;
         }
 
@@ -190,6 +192,8 @@ void Server::sendFrame()
             if (!found)
             {
                 rfbCloseClient(cl);
+                // Log the event of terminated session
+                ikvm::eventLogSupport("OpenBMC.0.1.KVMSessionTerminated");
             }
         }
 
@@ -429,6 +433,9 @@ void Server::clientGone(rfbClientPtr cl)
         return;
     }
 
+    // Log the event of a KVM disconnection
+    ikvm::eventLogSupport("OpenBMC.0.1.KVMDisconnected");
+
     delete (ClientData*)cl->clientData;
     cl->clientData = nullptr;
 
@@ -464,6 +471,9 @@ enum rfbNewClientAction Server::newClient(rfbClientPtr cl)
 
     updatePowerSaveMode(0); // Disable power saving mode
     cd->isNewSession = true;
+
+    // Log the event of a new KVM connection
+    ikvm::eventLogSupport("OpenBMC.0.1.KVMConnected");
 
     if (!server->numClients++)
     {
