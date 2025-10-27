@@ -127,49 +127,42 @@ void Interface::addscrnRecRmtStoreInterface()
     bool initBoolVal = false;
 
     jsonData["VideoRecord"]["RemoteStorage"]["Active"] = initBoolVal;
+    // Read existing values from JSON to preserve user settings across reboots
+    bool recordToRemoteVal = jsonData["VideoRecord"]["RemoteStorage"]["RecordToRemote"];
+    uint8_t maxDumpsVal = jsonData["VideoRecord"]["RemoteStorage"]["MaxDumps"];
+    uint8_t maxDurationVal = jsonData["VideoRecord"]["RemoteStorage"]["MaxDuration"];
+    uint8_t maxSizeVal = jsonData["VideoRecord"]["RemoteStorage"]["MaxSize"];
+    std::string serverIPVal = jsonData["VideoRecord"]["RemoteStorage"]["ServerIP"];
+    std::string pathInServerVal = jsonData["VideoRecord"]["RemoteStorage"]["PathInServer"];
+    std::string shareTypeVal = jsonData["VideoRecord"]["RemoteStorage"]["ShareType"];
 
     scrnRecRmtStoreIface->register_property(
         "Active", initBoolVal, sdbusplus::asio::PropertyPermission::readOnly);
 
-    jsonData["VideoRecord"]["RemoteStorage"]["RecordToRemote"] = initBoolVal;
     scrnRecRmtStoreIface->register_property(
-        "RecordToRemote", initBoolVal,
+        "RecordToRemote", recordToRemoteVal,
         sdbusplus::asio::PropertyPermission::readOnly);
 
-    uint8_t initUint8Val = 1;
-    jsonData["VideoRecord"]["RemoteStorage"]["MaxDumps"] = initUint8Val;
-
     scrnRecRmtStoreIface->register_property(
-        "MaxDumps", initUint8Val,
+        "MaxDumps", maxDumpsVal,
         sdbusplus::asio::PropertyPermission::readOnly);
 
-    jsonData["VideoRecord"]["RemoteStorage"]["MaxDuration"] = initUint8Val;
     scrnRecRmtStoreIface->register_property(
-        "MaxDuration", initUint8Val,
+        "MaxDuration", maxDurationVal,
         sdbusplus::asio::PropertyPermission::readOnly);
 
-    jsonData["VideoRecord"]["RemoteStorage"]["MaxSize"] = initUint8Val;
     scrnRecRmtStoreIface->register_property(
-        "MaxSize", initUint8Val, sdbusplus::asio::PropertyPermission::readOnly);
+        "MaxSize", maxSizeVal, sdbusplus::asio::PropertyPermission::readOnly);
 
-    std::string initStrVal = {};
-
-    initStrVal = "";
-    jsonData["VideoRecord"]["RemoteStorage"]["ServerIP"] = initStrVal;
     scrnRecRmtStoreIface->register_property<std::string>(
-        "ServerIP", initStrVal, sdbusplus::asio::PropertyPermission::readOnly);
+        "ServerIP", serverIPVal, sdbusplus::asio::PropertyPermission::readOnly);
 
-    jsonData["VideoRecord"]["RemoteStorage"]["PathInServer"] = initStrVal;
     scrnRecRmtStoreIface->register_property<std::string>(
-        "PathInServer", initStrVal,
+        "PathInServer", pathInServerVal,
         sdbusplus::asio::PropertyPermission::readOnly);
 
-    initStrVal = "nfs";
-    jsonData["VideoRecord"]["RemoteStorage"]["ShareType"] = initStrVal;
     scrnRecRmtStoreIface->register_property<std::string>(
-        "ShareType", initStrVal, sdbusplus::asio::PropertyPermission::readOnly);
-
-    kvmDbus::updateJson();
+        "ShareType", shareTypeVal, sdbusplus::asio::PropertyPermission::readOnly);
 
     scrnRecRmtStoreIface->register_method("EnableRemoteStorage",
                                           [this](bool recordToRemote) {
