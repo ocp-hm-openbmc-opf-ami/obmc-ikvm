@@ -52,6 +52,7 @@ const std::string smgrService = "xyz.openbmc_project.SessionManager";
 const std::string smgrObjPath = "/xyz/openbmc_project/SessionManager";
 const std::string smgrIface = "xyz.openbmc_project.SessionManager";
 const std::string smgrKVMIface = "xyz.openbmc_project.SessionManager.Kvm";
+const std::string smgrWebIface = "xyz.openbmc_project.SessionManager.Web";
 
 const std::string serviceMgrService =
     "xyz.openbmc_project.Control.Service.Manager";
@@ -66,6 +67,12 @@ const std::string pwrStatService = "xyz.openbmc_project.State.Chassis";
 const std::string pwrStatObjPath = "/xyz/openbmc_project/state/chassis0";
 const std::string pwrStatIface = "xyz.openbmc_project.State.Chassis";
 std::string hostPowerState = "Unknown";
+
+const std::string eventLogService = "xyz.openbmc_project.Logging";
+const std::string eventLogObjPath = "/xyz/openbmc_project/logging";
+const std::string eventLogIface = "xyz.openbmc_project.Logging.Create";
+const std::string eventlogServerity =
+    "xyz.openbmc_project.Logging.Entry.Level.Informational";
 
 bool isKvmDisabled = false;
 
@@ -329,6 +336,78 @@ void getRemoteConf()
         log<level::ERR>("Error in fetching video remote Storage config.",
                         entry("ERROR=%s", e.what()));
         return;
+    }
+}
+
+uint8_t extractSessionId(const std::string& infoStr)
+{
+    try
+    {
+        static const std::regex sessionPattern(R"(session_(\d+))");
+        std::smatch match;
+
+        if (!std::regex_search(infoStr, match, sessionPattern))
+        {
+            throw std::invalid_argument(
+                "Expected format 'session_N' not found.");
+        }
+
+        int sessionId = std::stoi(match[1].str());
+        if (sessionId < 0 || sessionId > 255)
+            throw std::out_of_range("Session ID must be in range 0-255.");
+
+        return static_cast<uint8_t>(sessionId);
+    }
+    catch (const std::exception& e)
+    {
+        log<level::ERR>("extractSessionId exception",
+                        entry("ERROR=%s", e.what()));
+        return 0; // Return default session ID on error
+    }
+}
+
+inline std::string trim(const std::string& s) {
+    auto start = s.find_first_not_of(" \t");
+    auto end = s.find_last_not_of(" \t");
+    return (start == std::string::npos) ? "" : s.substr(start, end - start + 1);
+}
+
+// Parse "key=value ,key2=value2" into a map
+std::map<std::string, std::string> parseKeyValueString(const std::string& input) {
+    std::map<std::string, std::string> result;
+    std::istringstream ss(input);
+    std::string pair;
+    while (std::getline(ss, pair, ',')) {
+        auto eq = pair.find('=');
+        if (eq != std::string::npos) {
+            std::string key = trim(pair.substr(0, eq));
+            std::string value = trim(pair.substr(eq + 1));
+            result[key] = value;
+        }
+    }
+    return result;
+}
+
+void eventLogSupport(const std::string& msg)
+{
+    try
+    {
+        auto bus = sdbusplus::bus::new_default_system();
+        sdbusplus::message::message m = bus.new_method_call(
+            eventLogService.c_str(), eventLogObjPath.c_str(),
+            eventLogIface.c_str(), "Create");
+        m.append(msg, eventlogServerity.c_str(),
+                 std::map<std::string, std::string>());
+        bus.call(m);
+    }
+    catch (const sdbusplus::exception::SdBusError& e)
+    {
+        log<level::ERR>("D-Bus call Failed", entry("ERROR=%s", e.what()));
+    }
+    catch (const std::exception& e)
+    {
+        log<level::ERR>("Error in Event Log support",
+                        entry("ERROR=%s", e.what()));
     }
 }
 

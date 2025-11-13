@@ -31,7 +31,11 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <regex>
+#include <stdexcept>
 #include <variant>
+#include <sstream>
+#include <algorithm>
 
 /* @brief Implementation of IVTP extension
  *
@@ -45,11 +49,37 @@
 
 /* Define macros for handling IVTP */
 #define SERVER_CUT_TEXT 3
+#define CLIENT_CUT_TEXT 6
+
+constexpr uint32_t IVTP_HEADER_SIZE = 4;
+constexpr uint32_t IVTP_NUMBER_SIZE = 2;
+constexpr uint32_t IVTP_PAYLOAD_LENGTH_HOLDER_SIZE = 4;
+constexpr uint32_t IVTP_STATUS_SIZE = 2;
+constexpr uint32_t IVTP_MIN_SIZE = 12;
+constexpr uint32_t IVTP_MAX_WAIT_CYCLES = 100;
+
 #define IVTP_STOP_SESSION_IMMEDIATE 0x0008
 
 /* Define macros for sending the error code as status */
 #define STOP_SESSION_TIMED_OUT 0x0009
 #define STOP_SESSION_IMMEDIATE 0x0002
+
+const short IVTP_VALIDATE_VIDEO_SESSION = 0x0012;
+const short IVTP_GET_WEB_TOKEN = 0x0015;
+const short IVTP_SESSION_ACCEPTED = 0x0017;
+
+struct IVTPMessage
+{
+    std::string header = "";    // 4-byte header
+    uint16_t num = 0;           // Message number/type
+    uint32_t payloadLength = 0; // Length of payload
+    uint16_t status = 0;        // Status code
+    std::string payload = "";   // Payload data
+    bool valid = false;         // set true if the message is valid
+
+    // Default constructor, added for completeness
+    IVTPMessage() = default;
+};
 
 namespace ikvm
 {
@@ -99,6 +129,7 @@ extern const std::string smgrService;
 extern const std::string smgrObjPath;
 extern const std::string smgrIface;
 extern const std::string smgrKVMIface;
+extern const std::string smgrWebIface;
 
 /*@brief service manager DBus- details*/
 extern const std::string serviceMgrService;
@@ -122,6 +153,12 @@ extern std::vector<uint8_t> activeSessionIDs;
 extern const std::string pwrStatService;
 extern const std::string pwrStatObjPath;
 extern const std::string pwrStatIface;
+
+/*@brief Event Log D-Bus details */
+extern const std::string eventLogService;
+extern const std::string eventLogObjPath;
+extern const std::string eventLogIface;
+
 /* @brief Holds the Host Power status
  *
  * @param[value] "Off": The host is powered off
@@ -192,5 +229,36 @@ void sessionTimeout();
  * @brief Gets Video Remote Storage latest Configurations
  */
 void getRemoteConf();
+
+/*
+ * @brief Extracts the session ID from the session information string.
+ *
+ * @param[in] infoStr - The session information string.
+ * @return The extracted session ID as an 8-bit unsigned integer.
+ */
+uint8_t extractSessionId(const std::string& infoStr);
+
+/*
+ * @brief Trims leading and trailing whitespace from a string.
+ *
+ * @param[in] s - The input string to be trimmed.
+ * @return A new string with leading and trailing whitespace removed.
+ */
+std::string trim(const std::string& s);
+
+/*
+ * @brief Parses a key-value string into a map.
+ *
+ * @param[in] input - The input string containing key-value pairs.
+ * @return A map where keys are strings and values are strings.
+ */
+std::map<std::string, std::string> parseKeyValueString(const std::string& input);
+
+/*
+ * @brief Creates an event log entry with the given message.
+ *
+ * @param[in] msg - The message to log.
+ */
+void eventLogSupport(const std::string& msg);
 
 } // namespace ikvm

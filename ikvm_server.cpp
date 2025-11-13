@@ -10,6 +10,10 @@
 #include <phosphor-logging/log.hpp>
 #include <xyz/openbmc_project/Common/error.hpp>
 
+#include <cctype>
+#include <iomanip>
+#include <iostream>
+
 #define ROUND_DOWN(x, r) ((x) & ~((r) - 1))
 
 #define DEFAULT_IP "~"        // Loopback IP address
@@ -93,6 +97,39 @@ void Server::run()
 {
     rfbProcessEvents(server, processTime);
 
+    rfbClientPtr cl = server->clientHead;
+    while (cl)
+    {
+        ClientData* cd = (ClientData*)cl->clientData;
+        if (!cd) {
+            cl = cl->next;
+            continue;
+        }
+
+        // Initial IVTP wait counter logic
+        if (cd->clientType == ClientData::ClientType::UNKNOWN) {
+            cd->ivtpWaitCycles++;
+            if (cd->ivtpWaitCycles > IVTP_MAX_WAIT_CYCLES) {
+                cd->clientType = ClientData::ClientType::VNC;
+                log<level::INFO>("Assuming client is a generic VNC (no IVTP received)");
+            }
+        }
+
+        // Session registration logic
+        if (cd->isNewSession) {
+            if ((cd->clientType == ClientData::ClientType::H5Viewer ||
+                 cd->clientType == ClientData::ClientType::JViewer)) {
+                if (cd->clientInfoReceived) {
+                    sessionRegister(cl);
+                }
+            } else if (cd->clientType == ClientData::ClientType::VNC) {
+                sessionRegister(cl);
+            }
+        }
+
+        cl = cl->next;
+    }
+
     if (server->clientHead)
     {
         frameCounter++;
@@ -135,6 +172,8 @@ void Server::sendFrame()
         {
             handleKVMServiceDisabled(cl->screen);
             rfbCloseClient(cl);
+            // Log the event of KVM redirection being disabled
+            ikvm::eventLogSupport("OpenBMC.0.1.KVMRedirectionDisabled");
             continue;
         }
 
@@ -153,6 +192,8 @@ void Server::sendFrame()
             if (!found)
             {
                 rfbCloseClient(cl);
+                // Log the event of terminated session
+                ikvm::eventLogSupport("OpenBMC.0.1.KVMSessionTerminated");
             }
         }
 
@@ -392,6 +433,9 @@ void Server::clientGone(rfbClientPtr cl)
         return;
     }
 
+    // Log the event of a KVM disconnection
+    ikvm::eventLogSupport("OpenBMC.0.1.KVMDisconnected");
+
     delete (ClientData*)cl->clientData;
     cl->clientData = nullptr;
 
@@ -418,73 +462,18 @@ enum rfbNewClientAction Server::newClient(rfbClientPtr cl)
 
     cl->clientData = new ClientData(ROUND_DOWN(server->video.getFrameRate(), 8),
                                     &server->input);
+
     cl->clientGoneHook = clientGone;
     cl->clientFramebufferUpdateRequestHook = clientFramebufferUpdateRequest;
+    cl->clientCutTextMsgHandlerHook = clientCutTextMsgHandler;
 
     ClientData* cd = (ClientData*)cl->clientData;
 
     updatePowerSaveMode(0); // Disable power saving mode
+    cd->isNewSession = true;
 
-    try
-    {
-        /* Method call for Registering */
-        auto busRegister = sdbusplus::bus::new_default_system();
-        auto m = busRegister.new_method_call(
-            smgrService.c_str(), smgrObjPath.c_str(), smgrIface.c_str(),
-            "SessionRegister");
-        std::string ipAdress = DEFAULT_IP;
-        std::string userName = USER_NAME;
-        uint8_t sessionType = KVM;
-        uint8_t privilege = PRIV_LEVEL_ADMIN;
-        uint8_t userId = KVM_DEFAULT_USER_ID;
-        std::string mountingMethod = MOUNTING_METHOD;
-
-        propertyValue propertyval;
-
-        m.append(cd->sessionId, ipAdress, userName, sessionType, privilege,
-                 userId, mountingMethod);
-
-        auto reply = busRegister.call(m);
-        bool status = false;
-        reply.read(status);
-
-        if (status)
-        {
-            auto msg2 = busRegister.new_method_call(
-                smgrService.c_str(), smgrObjPath.c_str(),
-                DBUS_PROPERTIES_INTERFACE, "Get");
-
-            msg2.append(smgrKVMIface, "KvmSessionInfo");
-
-            auto reply1 = busRegister.call(msg2);
-            reply1.read(propertyval);
-
-            if (std::holds_alternative<sessionRet>(propertyval))
-            {
-                sessionRet& vec = std::get<sessionRet>(propertyval);
-                if (!vec.empty())
-                {
-                    const auto& latestEntry =
-                        vec.back(); /* Get the last element */
-                    cd->sessionId =
-                        static_cast<uint8_t>(std::get<0>(latestEntry));
-                    // Add the session ID to the vector
-                    activeSessionIDs.push_back(cd->sessionId);
-                }
-            }
-        }
-    }
-
-    catch (const sdbusplus::exception::SdBusError& e)
-    {
-        log<level::ERR>("D-Bus call Failed", entry("ERROR=%s", e.what()));
-    }
-
-    catch (const std::exception& e)
-    {
-        log<level::ERR>(" Error handling for session Registering",
-                        entry("ERROR=%s", e.what()));
-    }
+    // Log the event of a new KVM connection
+    ikvm::eventLogSupport("OpenBMC.0.1.KVMConnected");
 
     if (!server->numClients++)
     {
@@ -536,7 +525,7 @@ void Server::doResize()
 
         // let skipFrame round-down per interval of aspeed's I frame
         // delay video updates to give the client time to resize
-	cd->skipFrame = ROUND_DOWN(video.getFrameRate(), 8);
+        cd->skipFrame = ROUND_DOWN(video.getFrameRate(), 8);
     }
 
     rfbReleaseClientIterator(it);
