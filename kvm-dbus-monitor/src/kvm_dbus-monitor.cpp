@@ -140,7 +140,7 @@ sdbusplus::bus::match_t Monitor::tempSensCritMonitor(
                 jsonData["VideoRecord"]["TriggerSettings"]["TriggeringEvents"];
             if (!(triggerEvents.test(triggerEvent::criticalTmpVolt)))
             {
-                log<level::INFO>(
+                log<level::DEBUG>(
                     " Critical temp: not Selected as Triggering event");
                 return;
             }
@@ -188,7 +188,7 @@ sdbusplus::bus::match_t Monitor::tempSensNonCritMonitor(
                 jsonData["VideoRecord"]["TriggerSettings"]["TriggeringEvents"];
             if (!(triggerEvents.test(triggerEvent::nonCriticalTmpVolt)))
             {
-                log<level::INFO>(
+                log<level::DEBUG>(
                     " Warning temp: not Selected as Triggering event");
                 return;
             }
@@ -236,7 +236,7 @@ sdbusplus::bus::match_t Monitor::voltSensCritMonitor(
                 jsonData["VideoRecord"]["TriggerSettings"]["TriggeringEvents"];
             if (!(triggerEvents.test(triggerEvent::criticalTmpVolt)))
             {
-                log<level::INFO>(
+                log<level::DEBUG>(
                     "Critical Voltage: not Selected as Triggering event");
                 return;
             }
@@ -284,7 +284,7 @@ sdbusplus::bus::match_t Monitor::voltSensNonCritMonitor(
                 jsonData["VideoRecord"]["TriggerSettings"]["TriggeringEvents"];
             if (!(triggerEvents.test(triggerEvent::criticalTmpVolt)))
             {
-                log<level::INFO>(
+                log<level::DEBUG>(
                     "Warning Voltage: not Selected as Triggering event");
                 return;
             }
@@ -335,7 +335,7 @@ sdbusplus::bus::match_t Monitor::hostPowerOptMonitor(
                 !(triggerEvents.test(triggerEvent::chassisPowerOff)) &&
                 !(triggerEvents.test(triggerEvent::chassisReset)))
             {
-                log<level::INFO>(
+                log<level::DEBUG>(
                     "Power Operations: not Selected as Triggering event");
                 return;
             }
@@ -355,7 +355,7 @@ sdbusplus::bus::match_t Monitor::hostPowerOptMonitor(
                     {
                         if (!(triggerEvents.test(triggerEvent::chassisPowerOn)))
                         {
-                            log<level::INFO>(
+                            log<level::DEBUG>(
                                 "Power ON: not Selected as Triggering event");
                             return;
                         }
@@ -365,7 +365,7 @@ sdbusplus::bus::match_t Monitor::hostPowerOptMonitor(
                         if (!(triggerEvents.test(
                                 triggerEvent::chassisPowerOff)))
                         {
-                            log<level::INFO>(
+                            log<level::DEBUG>(
                                 "Power OFF: not Selected as Triggering event");
                             return;
                         }
@@ -374,7 +374,7 @@ sdbusplus::bus::match_t Monitor::hostPowerOptMonitor(
                     {
                         if (!(triggerEvents.test(triggerEvent::chassisReset)))
                         {
-                            log<level::INFO>(
+                            log<level::DEBUG>(
                                 "Power Reset:not Selected as Triggering event");
                             return;
                         }
@@ -414,7 +414,7 @@ sdbusplus::bus::match_t Monitor::hostForcedShutdownMonitor(
 
             if (!(triggerEvents.test(triggerEvent::chassisPowerOff)))
             {
-                log<level::INFO>(
+                log<level::DEBUG>(
                     "Power Off Operation: not Selected as Triggering event");
                 return;
             }
@@ -435,7 +435,7 @@ sdbusplus::bus::match_t Monitor::hostForcedShutdownMonitor(
                         if (!(triggerEvents.test(
                                 triggerEvent::chassisPowerOff)))
                         {
-                            log<level::INFO>(
+                            log<level::DEBUG>(
                                 "Power OFF: not Selected as Triggering event");
                             return;
                         }
@@ -470,7 +470,7 @@ sdbusplus::bus::match_t Monitor::lpcResetMonitor(
                 jsonData["VideoRecord"]["TriggerSettings"]["TriggeringEvents"];
             if (!(triggerEvents.test(triggerEvent::lPCReset)))
             {
-                log<level::INFO>("lpcReset: not Selected as Triggering event");
+                log<level::DEBUG>("lpcReset: not Selected as Triggering event");
                 return;
             }
 
