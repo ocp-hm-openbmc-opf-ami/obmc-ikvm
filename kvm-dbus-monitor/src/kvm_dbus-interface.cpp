@@ -482,7 +482,7 @@ std::string Interface::UpdateRemoteStorageInfo(
             }
 
             if ((maxDumps != 1) || (maxDuration < 1 || maxDuration > 20) ||
-                (maxSize < 1 || maxSize > 10) ||
+                (maxSize < 1 || maxSize > 100) ||
                 (!(shareType == "nfs" || shareType == "cifs")))
             {
                 status = "Failure: invalid values Provided. ";
@@ -496,10 +496,10 @@ std::string Interface::UpdateRemoteStorageInfo(
                     status +=
                         "[arg2]maxDuration: Allowed values range inbetween 1 to 20 (in sec). ";
                 }
-                if (maxSize < 1 || maxSize > 10)
+                if (maxSize < 1 || maxSize > 100)
                 {
                     status +=
-                        "[arg3]maxDuration: Allowed values range inbetween 1 to 10 (in MB). ";
+                        "[arg3]maxDuration: Allowed values range inbetween 1 to 100 (in MB). ";
                 }
                 if (!(shareType == "nfs" || shareType == "cifs"))
                 {

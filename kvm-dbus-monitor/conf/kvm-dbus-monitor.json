@@ -17,8 +17,8 @@
         "RemoteStorage": {
             "Active": false,
             "MaxDumps" : 1,
-            "MaxDuration": 1,
-            "MaxSize" : 1,
+            "MaxDuration": 20,
+            "MaxSize" : 100,
             "PathInServer":"",
             "RecordToRemote": false,
             "ServerIP": "",
