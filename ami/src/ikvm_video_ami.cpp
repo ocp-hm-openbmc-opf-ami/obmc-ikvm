@@ -65,7 +65,7 @@ void Video::formatChange(int newformat)
 
 void Video::screenShot(const std::string& screenShotPath)
 {
-    if (buffersDone.front() < 0)
+    if (buffersDone.empty() || buffersDone.front() < 0)
     {
         log<level::ERR>("Buffer front empty");
         return;
@@ -140,41 +140,43 @@ void Video::screenShot(const std::string& screenShotPath)
 
 void Video::setFrame(const char* ImgPath)
 {
-	static int sequenceNumber = 1;
-	size_t size = 0;
+    static int sequenceNumber = 1;
+    size_t size = 0;
 
-	buffers[0].queued = false;
-	std::ifstream file(ImgPath, std::ios::binary | std::ios::ate);
-	if (!file.is_open())
-	{
-		log<level::ERR>("Failed to open image file",
-				entry("ERROR=%s", strerror(errno)));
-		return;
-	}
+    buffers[0].queued = false;
+    std::ifstream file(ImgPath, std::ios::binary | std::ios::ate);
+    if (!file.is_open())
+    {
+        log<level::ERR>("Failed to open image file",
+                        entry("ERROR=%s", strerror(errno)));
+        return;
+    }
 
-	size = file.tellg();
-	file.seekg(0, std::ios::beg);
-	std::vector<char> buffer(size);
-	std::fill(buffer.begin(), buffer.end(), 0);
+    size = file.tellg();
+    file.seekg(0, std::ios::beg);
+    std::vector<char> buffer(size);
+    std::fill(buffer.begin(), buffer.end(), 0);
 
-	if (!file.read(buffer.data(), size)) // Reading the image file into the buffer
-	{
-		log<level::ERR>("Failed to read image file",
-				entry("ERROR=%s", strerror(errno)));
-		file.close();
-		return;
-	}
-	file.close();             // Close the file after reading
+    if (!file.read(buffer.data(),
+                   size)) // Reading the image file into the buffer
+    {
+        log<level::ERR>("Failed to read image file",
+                        entry("ERROR=%s", strerror(errno)));
+        file.close();
+        return;
+    }
+    file.close(); // Close the file after reading
 
-	if (!buffers[0].queued)
-	{
-		memcpy(buffers[0].data, buffer.data(), size);
-		buffers[0].payload = size;
-		buffers[0].sequence = sequenceNumber++;
-		buffers[0].box = {0, 0, static_cast<unsigned int>(width), static_cast<unsigned int>(height)};
-		buffers[0].queued = true;
-		buffersDone.push_back(0);
-	}
+    if (!buffers[0].queued)
+    {
+        memcpy(buffers[0].data, buffer.data(), size);
+        buffers[0].payload = size;
+        buffers[0].sequence = sequenceNumber++;
+        buffers[0].box = {0, 0, static_cast<unsigned int>(width),
+                          static_cast<unsigned int>(height)};
+        buffers[0].queued = true;
+        buffersDone.push_back(0);
+    }
 }
 
 void Video::videoRecord(Video* video)
@@ -305,7 +307,6 @@ void Video::videoRecord(Video* video)
     }
     catch (const std::exception& e)
     {
-
         log<level::ERR>("Exception caught during video record");
         log<level::ERR>("Error : ", entry("ERROR=%s", e.what()));
 

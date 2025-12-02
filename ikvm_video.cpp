@@ -503,7 +503,6 @@ void Video::start()
         return;
     }
 
-
     fd = open(path.c_str(), O_RDWR);
     if (fd < 0)
     {
@@ -664,9 +663,12 @@ void Video::start()
 
     resize();
 
-    if (oldHeight != height || oldWidth != width)
+    if (isNewClient)
     {
-        resizeAfterOpen = true;
+        if (oldHeight != height || oldWidth != width)
+        {
+            resizeAfterOpen = true;
+        }
     }
 }
 
