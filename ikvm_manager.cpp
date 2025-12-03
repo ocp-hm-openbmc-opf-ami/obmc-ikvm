@@ -122,7 +122,7 @@ void Manager::statusUpdateThread(Manager* manager)
             {
                 manager->video.releaseFrames();
             }
-            if(InitFlag.load())
+            if (InitFlag.load())
             {
                 log<level::DEBUG>("Init flag Downed");
                 InitFlag.store(false);

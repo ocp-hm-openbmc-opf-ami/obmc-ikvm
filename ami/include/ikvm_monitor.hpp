@@ -72,8 +72,8 @@ class Monitor
      *
      *  @param[in]conn Pointer to Dbus Connection
      */
-    sdbusplus::bus::match_t
-        sessionMonitor(const std::shared_ptr<sdbusplus::asio::connection> conn);
+    sdbusplus::bus::match_t sessionMonitor(
+        const std::shared_ptr<sdbusplus::asio::connection> conn);
 
     /*
      *
@@ -81,8 +81,8 @@ class Monitor
      *
      *  @param[in]conn Pointer to Dbus Connection
      */
-    sdbusplus::bus::match_t
-        sessionTimeout(const std::shared_ptr<sdbusplus::asio::connection> conn);
+    sdbusplus::bus::match_t sessionTimeout(
+        const std::shared_ptr<sdbusplus::asio::connection> conn);
 
     /*
      *
@@ -90,8 +90,8 @@ class Monitor
      *
      *  @param[in]conn Pointer to Dbus Connection
      */
-    sdbusplus::bus::match_t
-        powerStatMonitor(std::shared_ptr<sdbusplus::asio::connection> conn);
+    sdbusplus::bus::match_t powerStatMonitor(
+        std::shared_ptr<sdbusplus::asio::connection> conn);
 
     /*
      *
@@ -99,16 +99,16 @@ class Monitor
      *
      *  @param[in]conn Pointer to Dbus Connection
      */
-    sdbusplus::bus::match_t
-        monitoringKvmStatus(std::shared_ptr<sdbusplus::asio::connection> conn);
+    sdbusplus::bus::match_t monitoringKvmStatus(
+        std::shared_ptr<sdbusplus::asio::connection> conn);
     /*
      *
      *  @brief D-Bus Signal Monitor for Auto Video Record Trigger
      *
      *  @param[in]conn Pointer to Dbus Connection
      */
-    sdbusplus::bus::match_t
-        videoRecordMonitor(std::shared_ptr<sdbusplus::asio::connection> conn);
+    sdbusplus::bus::match_t videoRecordMonitor(
+        std::shared_ptr<sdbusplus::asio::connection> conn);
     /*
      *
      *  @brief Initialize method for Monitor Class

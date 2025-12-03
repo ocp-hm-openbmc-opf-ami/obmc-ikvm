@@ -6,10 +6,10 @@
 #include <linux/videodev2.h>
 
 #include <deque>
+#include <fstream>
 #include <mutex>
 #include <string>
 #include <vector>
-#include <fstream>
 
 namespace ikvm
 {
@@ -225,7 +225,7 @@ class Video
      * stores as an raw file(.dat) in memory
      * @param[in] video Video object
      */
-    static void videoRecord(Video *video);
+    static void videoRecord(Video* video);
     /*
      * @brief dbus call to update video record status
      *
@@ -236,6 +236,7 @@ class Video
      *
      */
     static bool updateRecStat(std::string recType);
+
   private:
     void qbuf(int i);
     /*

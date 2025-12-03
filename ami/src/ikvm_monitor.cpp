@@ -119,8 +119,8 @@ sdbusplus::bus::match_t Monitor::screenshotMonitor(
     return screenshotMatcher;
 }
 
-sdbusplus::bus::match_t
-    Monitor::sessionMonitor(std::shared_ptr<sdbusplus::asio::connection> conn)
+sdbusplus::bus::match_t Monitor::sessionMonitor(
+    std::shared_ptr<sdbusplus::asio::connection> conn)
 {
     auto sessionCallback = [&conn](sdbusplus::message_t& msg) {
         try
@@ -207,8 +207,8 @@ sdbusplus::bus::match_t Monitor::sessionTimeout(
     return captureTimeout;
 }
 
-sdbusplus::bus::match_t
-    Monitor::powerStatMonitor(std::shared_ptr<sdbusplus::asio::connection> conn)
+sdbusplus::bus::match_t Monitor::powerStatMonitor(
+    std::shared_ptr<sdbusplus::asio::connection> conn)
 {
     auto pwrStatCallback = [&conn, this](sdbusplus::message_t& msg) {
         try

@@ -131,11 +131,10 @@ class Interface
      * @param[in] shareType[string]
      * @param[in] credFd[VARIANT<INT32_t,UNIX_FD>]
      */
-    std::string UpdateRemoteStorageInfo(uint8_t maxDumps, uint8_t maxDuration,
-                                        uint8_t maxSize, std::string serverIP,
-                                        std::string pathInServer,
-                                        std::string shareType,
-                                        credentialVariant credFd);
+    std::string UpdateRemoteStorageInfo(
+        uint8_t maxDumps, uint8_t maxDuration, uint8_t maxSize,
+        std::string serverIP, std::string pathInServer, std::string shareType,
+        credentialVariant credFd);
     /*
      * @brief Implementation of dbus method for Updating Remote
      * storage info.

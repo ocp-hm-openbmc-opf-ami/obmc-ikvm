@@ -593,9 +593,9 @@ uint8_t Input::keyToScancode(rfbKeySym key)
             case XK_Intlbackslash:
                 scancode = USBHID_KEY_INTLBACKSLASH;
                 break;
-	    case XK_Menu:
-		scancode = USBHID_MENU;
-		break;
+            case XK_Menu:
+                scancode = USBHID_MENU;
+                break;
         }
     }
 

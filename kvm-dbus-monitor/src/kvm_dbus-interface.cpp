@@ -49,26 +49,26 @@ void Interface::initialize()
 
 void Interface::addScreenshotInterface()
 {
-    scrnshotIface = server.add_interface(ObjPath.c_str(),
-                                         scrnshotInterface.c_str());
+    scrnshotIface =
+        server.add_interface(ObjPath.c_str(), scrnshotInterface.c_str());
 
     bool initBoolVal = jsonData["Kvm"]["Screenshot"]["Trigger"];
 
     scrnshotIface->register_property(
         "Trigger", initBoolVal, sdbusplus::asio::PropertyPermission::readOnly);
 
-    scrnshotIface->register_method("TriggerScreenshot",
-                                   [this](int scrnshotReqType) {
-        return Interface::TriggerScreenshot(scrnshotReqType);
-    });
+    scrnshotIface->register_method(
+        "TriggerScreenshot", [this](int scrnshotReqType) {
+            return Interface::TriggerScreenshot(scrnshotReqType);
+        });
 
     scrnshotIface->initialize();
 }
 
 void Interface::addVideoRecordInterface()
 {
-    ScrnRecIface = server.add_interface(ObjPath.c_str(),
-                                        scrnRecInterface.c_str());
+    ScrnRecIface =
+        server.add_interface(ObjPath.c_str(), scrnRecInterface.c_str());
 
     bool initBoolVal = jsonData["Kvm"]["VideoRecord"]["RecordStatus"];
 
@@ -76,18 +76,18 @@ void Interface::addVideoRecordInterface()
         "RecordStatus", initBoolVal,
         sdbusplus::asio::PropertyPermission::readOnly);
 
-    ScrnRecIface->register_method("TriggerRecord",
-                                  [this](std::string scrnRecReqType) {
-        return Interface::TriggerVideoRecord(scrnRecReqType);
-    });
+    ScrnRecIface->register_method(
+        "TriggerRecord", [this](std::string scrnRecReqType) {
+            return Interface::TriggerVideoRecord(scrnRecReqType);
+        });
 
     ScrnRecIface->initialize();
 }
 
 void Interface::addscrnRecTriggInterface()
 {
-    scrnRecTriggIface = server.add_interface(RecObjPath.c_str(),
-                                             scrnRecTriggInterface.c_str());
+    scrnRecTriggIface =
+        server.add_interface(RecObjPath.c_str(), scrnRecTriggInterface.c_str());
 
     uint32_t initUnit32Val =
         jsonData["VideoRecord"]["TriggerSettings"]["TriggeringEvents"];
@@ -106,15 +106,15 @@ void Interface::addscrnRecTriggInterface()
     scrnRecTriggIface->register_property<std::string>(
         "Time", initStrVal, sdbusplus::asio::PropertyPermission::readOnly);
 
-    scrnRecTriggIface->register_method("UpdateTriggeringEvents",
-                                       [this](uint32_t triggerEvents) {
-        return Interface::UpdateTriggeringEvents(triggerEvents);
-    });
+    scrnRecTriggIface->register_method(
+        "UpdateTriggeringEvents", [this](uint32_t triggerEvents) {
+            return Interface::UpdateTriggeringEvents(triggerEvents);
+        });
 
     scrnRecTriggIface->register_method(
         "UpdateTriggerDateTime", [this](std::string date, std::string time) {
-        return Interface::UpdateTriggerDateTime(date, time);
-    });
+            return Interface::UpdateTriggerDateTime(date, time);
+        });
 
     scrnRecTriggIface->initialize();
 }
@@ -128,13 +128,18 @@ void Interface::addscrnRecRmtStoreInterface()
 
     jsonData["VideoRecord"]["RemoteStorage"]["Active"] = initBoolVal;
     // Read existing values from JSON to preserve user settings across reboots
-    bool recordToRemoteVal = jsonData["VideoRecord"]["RemoteStorage"]["RecordToRemote"];
+    bool recordToRemoteVal =
+        jsonData["VideoRecord"]["RemoteStorage"]["RecordToRemote"];
     uint8_t maxDumpsVal = jsonData["VideoRecord"]["RemoteStorage"]["MaxDumps"];
-    uint8_t maxDurationVal = jsonData["VideoRecord"]["RemoteStorage"]["MaxDuration"];
+    uint8_t maxDurationVal =
+        jsonData["VideoRecord"]["RemoteStorage"]["MaxDuration"];
     uint8_t maxSizeVal = jsonData["VideoRecord"]["RemoteStorage"]["MaxSize"];
-    std::string serverIPVal = jsonData["VideoRecord"]["RemoteStorage"]["ServerIP"];
-    std::string pathInServerVal = jsonData["VideoRecord"]["RemoteStorage"]["PathInServer"];
-    std::string shareTypeVal = jsonData["VideoRecord"]["RemoteStorage"]["ShareType"];
+    std::string serverIPVal =
+        jsonData["VideoRecord"]["RemoteStorage"]["ServerIP"];
+    std::string pathInServerVal =
+        jsonData["VideoRecord"]["RemoteStorage"]["PathInServer"];
+    std::string shareTypeVal =
+        jsonData["VideoRecord"]["RemoteStorage"]["ShareType"];
 
     scrnRecRmtStoreIface->register_property(
         "Active", initBoolVal, sdbusplus::asio::PropertyPermission::readOnly);
@@ -144,8 +149,7 @@ void Interface::addscrnRecRmtStoreInterface()
         sdbusplus::asio::PropertyPermission::readOnly);
 
     scrnRecRmtStoreIface->register_property(
-        "MaxDumps", maxDumpsVal,
-        sdbusplus::asio::PropertyPermission::readOnly);
+        "MaxDumps", maxDumpsVal, sdbusplus::asio::PropertyPermission::readOnly);
 
     scrnRecRmtStoreIface->register_property(
         "MaxDuration", maxDurationVal,
@@ -162,22 +166,23 @@ void Interface::addscrnRecRmtStoreInterface()
         sdbusplus::asio::PropertyPermission::readOnly);
 
     scrnRecRmtStoreIface->register_property<std::string>(
-        "ShareType", shareTypeVal, sdbusplus::asio::PropertyPermission::readOnly);
+        "ShareType", shareTypeVal,
+        sdbusplus::asio::PropertyPermission::readOnly);
 
-    scrnRecRmtStoreIface->register_method("EnableRemoteStorage",
-                                          [this](bool recordToRemote) {
-        return Interface::EnableRemoteStorage(recordToRemote);
-    });
+    scrnRecRmtStoreIface->register_method(
+        "EnableRemoteStorage", [this](bool recordToRemote) {
+            return Interface::EnableRemoteStorage(recordToRemote);
+        });
 
     scrnRecRmtStoreIface->register_method(
         "UpdateRemoteStorageInfo",
         [this](uint8_t maxDumps, uint8_t maxDuration, uint8_t maxSize,
                std::string serverIP, std::string pathInServer,
                std::string shareType, credentialVariant credFd) {
-        return Interface::UpdateRemoteStorageInfo(
-            maxDumps, maxDuration, maxSize, serverIP, pathInServer, shareType,
-            credFd);
-    });
+            return Interface::UpdateRemoteStorageInfo(
+                maxDumps, maxDuration, maxSize, serverIP, pathInServer,
+                shareType, credFd);
+        });
 
     scrnRecRmtStoreIface->initialize();
 }
@@ -212,9 +217,9 @@ void Interface::addscrnRecPreEvntInterface()
         "UpdatePreEventTriggerInfo",
         [this](uint8_t compressMode, uint8_t fps, uint8_t maxDuration,
                uint8_t videoQuality) {
-        return Interface::UpdatePreEventTriggerInfo(compressMode, fps,
-                                                    maxDuration, videoQuality);
-    });
+            return Interface::UpdatePreEventTriggerInfo(
+                compressMode, fps, maxDuration, videoQuality);
+        });
 
     scrnRecPreEvntIface->initialize();
 }
@@ -261,8 +266,7 @@ std::string Interface::TriggerVideoRecord(std::string videoRecReqType)
             }
             else
             {
-                throw std::runtime_error(
-                    "Video record already in progress...");
+                throw std::runtime_error("Video record already in progress...");
             }
         }
         else if (videoRecReqType == "Stop")
@@ -333,8 +337,8 @@ std::string Interface::UpdateTriggerDateTime(std::string date, std::string time)
         std::string dropin_dir = "/etc/systemd/system/" + timer_name + ".d/";
 
         std::string dropin_file = dropin_dir + "10_OnCalendar_Auto_Video.conf";
-        std::string temp_file = dropin_dir +
-                                "10_OnCalendar_Auto_Video.conf.tmp";
+        std::string temp_file =
+            dropin_dir + "10_OnCalendar_Auto_Video.conf.tmp";
 
         std::string new_datetime = date + " " + time;
 
@@ -572,8 +576,8 @@ std::string Interface::UpdateRemoteStorageInfo(
                     }
                     // Resize the string to the actual number of bytes read.
                     buffer.resize(bytesRead);
-                    auto nullCount = std::count(buffer.begin(), buffer.end(),
-                                                '\0');
+                    auto nullCount =
+                        std::count(buffer.begin(), buffer.end(), '\0');
 
                     if (nullCount != 2)
                     {
@@ -711,10 +715,9 @@ std::string Interface::UpdateRemoteStorageInfo(
     return status;
 }
 
-std::string Interface::UpdatePreEventTriggerInfo(uint8_t compressMode,
-                                                 uint8_t fps,
-                                                 uint8_t maxDuration,
-                                                 uint8_t videoQuality)
+std::string Interface::UpdatePreEventTriggerInfo(
+    uint8_t compressMode, uint8_t fps, uint8_t maxDuration,
+    uint8_t videoQuality)
 {
     std::string status = "Unknown";
 

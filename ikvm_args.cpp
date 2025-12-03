@@ -1,4 +1,5 @@
 #include "ikvm_args.hpp"
+
 #include "ami/include/ikvm_utils.hpp"
 
 #include <getopt.h>
@@ -39,7 +40,9 @@ Args::Args(int argc, char* argv[]) :
                 if (format != 0 && format != 2)
                     format = 0;
                 // Force full screen JPEG for 2700
-                if(fs::exists(usbVirtualHubPath2700A0) || fs::exists(usbVirtualHubPath2700A1)) {
+                if (fs::exists(usbVirtualHubPath2700A0) ||
+                    fs::exists(usbVirtualHubPath2700A1))
+                {
                     format = 0;
                     isAst2700Platform = true;
                 }

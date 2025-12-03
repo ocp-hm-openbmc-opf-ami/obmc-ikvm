@@ -366,20 +366,24 @@ uint8_t extractSessionId(const std::string& infoStr)
     }
 }
 
-inline std::string trim(const std::string& s) {
+inline std::string trim(const std::string& s)
+{
     auto start = s.find_first_not_of(" \t");
     auto end = s.find_last_not_of(" \t");
     return (start == std::string::npos) ? "" : s.substr(start, end - start + 1);
 }
 
 // Parse "key=value ,key2=value2" into a map
-std::map<std::string, std::string> parseKeyValueString(const std::string& input) {
+std::map<std::string, std::string> parseKeyValueString(const std::string& input)
+{
     std::map<std::string, std::string> result;
     std::istringstream ss(input);
     std::string pair;
-    while (std::getline(ss, pair, ',')) {
+    while (std::getline(ss, pair, ','))
+    {
         auto eq = pair.find('=');
-        if (eq != std::string::npos) {
+        if (eq != std::string::npos)
+        {
             std::string key = trim(pair.substr(0, eq));
             std::string value = trim(pair.substr(eq + 1));
             result[key] = value;

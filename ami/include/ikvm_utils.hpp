@@ -25,6 +25,7 @@
 #include <sdbusplus/server/object.hpp>
 #include <xyz/openbmc_project/Common/File/error.hpp>
 
+#include <algorithm>
 #include <atomic>
 #include <cstdint>
 #include <filesystem>
@@ -32,10 +33,9 @@
 #include <map>
 #include <memory>
 #include <regex>
+#include <sstream>
 #include <stdexcept>
 #include <variant>
-#include <sstream>
-#include <algorithm>
 
 /* @brief Implementation of IVTP extension
  *
@@ -194,9 +194,9 @@ extern bool active;
 
 /*@brief 2700 specific Config. */
 static constexpr const char* usbVirtualHubPath2700A0 =
-        "/sys/bus/platform/devices/12011000.usb-vhub";
+    "/sys/bus/platform/devices/12011000.usb-vhub";
 static constexpr const char* usbVirtualHubPath2700A1 =
-        "/sys/bus/platform/devices/12060000.usb-vhub";
+    "/sys/bus/platform/devices/12060000.usb-vhub";
 
 static constexpr int NO_VALID_FRAME_COUNT_THRESHOLD = 2;
 static constexpr int NO_VALID_FRAME_COUNT_RESET = 0;
@@ -252,7 +252,8 @@ std::string trim(const std::string& s);
  * @param[in] input - The input string containing key-value pairs.
  * @return A map where keys are strings and values are strings.
  */
-std::map<std::string, std::string> parseKeyValueString(const std::string& input);
+std::map<std::string, std::string> parseKeyValueString(
+    const std::string& input);
 
 /*
  * @brief Creates an event log entry with the given message.

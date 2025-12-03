@@ -101,28 +101,37 @@ void Server::run()
     while (cl)
     {
         ClientData* cd = (ClientData*)cl->clientData;
-        if (!cd) {
+        if (!cd)
+        {
             cl = cl->next;
             continue;
         }
 
         // Initial IVTP wait counter logic
-        if (cd->clientType == ClientData::ClientType::UNKNOWN) {
+        if (cd->clientType == ClientData::ClientType::UNKNOWN)
+        {
             cd->ivtpWaitCycles++;
-            if (cd->ivtpWaitCycles > IVTP_MAX_WAIT_CYCLES) {
+            if (cd->ivtpWaitCycles > IVTP_MAX_WAIT_CYCLES)
+            {
                 cd->clientType = ClientData::ClientType::VNC;
-                log<level::INFO>("Assuming client is a generic VNC (no IVTP received)");
+                log<level::INFO>(
+                    "Assuming client is a generic VNC (no IVTP received)");
             }
         }
 
         // Session registration logic
-        if (cd->isNewSession) {
+        if (cd->isNewSession)
+        {
             if ((cd->clientType == ClientData::ClientType::H5Viewer ||
-                 cd->clientType == ClientData::ClientType::JViewer)) {
-                if (cd->clientInfoReceived) {
+                 cd->clientType == ClientData::ClientType::JViewer))
+            {
+                if (cd->clientInfoReceived)
+                {
                     sessionRegister(cl);
                 }
-            } else if (cd->clientType == ClientData::ClientType::VNC) {
+            }
+            else if (cd->clientType == ClientData::ClientType::VNC)
+            {
                 sessionRegister(cl);
             }
         }
