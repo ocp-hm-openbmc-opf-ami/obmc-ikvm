@@ -266,7 +266,8 @@ std::string Interface::TriggerVideoRecord(std::string videoRecReqType)
             }
             else
             {
-                throw std::runtime_error("Video record already in progress...");
+                log<level::INFO>("Video record already in progress...");
+                status = "Failure: Video record already in progress";
             }
         }
         else if (videoRecReqType == "Stop")

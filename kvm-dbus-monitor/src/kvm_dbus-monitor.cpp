@@ -60,9 +60,9 @@ void Monitor::AsyncRecordTrigger(
             }
             else if (response != "Success")
             {
-                log<level::ERR>("Failed to call method:  ");
-                log<level::ERR>("Error : ",
-                                entry("ERROR=%s", response.c_str()));
+                log<level::DEBUG>("Failed to call method:  ");
+                log<level::DEBUG>("Error : ",
+                                  entry("ERROR=%s", response.c_str()));
                 return;
             }
             log<level::DEBUG>("Video record Triggered Succesfully");
