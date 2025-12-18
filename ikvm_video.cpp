@@ -663,7 +663,7 @@ void Video::start()
 
     resize();
 
-    if (isNewClient)
+    if (isNewClient || getSignalStatus() == V4L2_IN_ST_NO_SIGNAL)
     {
         if (oldHeight != height || oldWidth != width)
         {
