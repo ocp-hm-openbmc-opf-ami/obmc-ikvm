@@ -35,8 +35,8 @@ using namespace sdbusplus::xyz::openbmc_project::Common::Device::Error;
 
 Video::Video(const std::string& p, Input& input, int fr, int sub, int fmt) :
     resizeAfterOpen(false), timingsError(false), fd(-1), frameRate(fr),
-    height(600), width(800), subSampling(sub), input(input), format(fmt),
-    originalFormat(fmt), path(p), pixelformat(V4L2_PIX_FMT_JPEG)
+    height(600), width(800), subSampling(sub), quality(4), input(input),
+    format(fmt), originalFormat(fmt), path(p), pixelformat(V4L2_PIX_FMT_JPEG)
 {}
 
 Video::~Video()
@@ -621,6 +621,15 @@ void Video::start()
     if (rc < 0)
     {
         log<level::WARNING>("Failed to set video device frame rate",
+                            entry("ERROR=%s", strerror(errno)));
+    }
+
+    ctrl.id = V4L2_CID_JPEG_COMPRESSION_QUALITY;
+    ctrl.value = quality;
+    rc = ioctl(fd, VIDIOC_S_CTRL, &ctrl);
+    if (rc < 0)
+    {
+        log<level::WARNING>("Failed to set video jpeg quality",
                             entry("ERROR=%s", strerror(errno)));
     }
 

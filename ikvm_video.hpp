@@ -153,6 +153,15 @@ class Video
         subSampling = _sub;
     }
     /*
+     * @brief Gets the quality of the jpeg compression result
+     *
+     * @return Value of the jpeg quality
+     */
+    inline int getQuality() const
+    {
+        return quality;
+    }
+    /*
      * @brief Gets the jpeg format of the video frame
      *
      * @return Value of the jpeg format of video frame
@@ -280,6 +289,8 @@ class Video
     size_t width;
     /* @brief jpeg's subsampling, 1:420/0:444 */
     int subSampling;
+    /* @brief jpeg's quality */
+    int quality;
     /* @brief Reference to the Input object */
     Input& input;
     /* @brief jpeg format */
