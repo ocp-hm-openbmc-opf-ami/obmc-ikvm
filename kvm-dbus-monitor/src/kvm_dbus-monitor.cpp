@@ -442,6 +442,24 @@ sdbusplus::bus::match_t Monitor::hostForcedShutdownMonitor(
                     }
                     AsyncRecordTrigger(conn, "Start");
                 }
+                else if (entry.first == "CurrentPowerState")
+                {
+                    std::string powerState =
+                        std::get<std::string>(entry.second);
+
+                    if (powerState.find("Off") != std::string::npos)
+                    {
+                        if (!(triggerEvents.test(
+                                triggerEvent::chassisPowerOff)))
+                        {
+                            log<level::DEBUG>(
+                                "Chassis Power OFF: not Selected as Triggering event");
+                            return;
+                        }
+
+                        AsyncRecordTrigger(conn, "Start");
+                    }
+                }
             }
         }
         catch (const std::exception& e)
