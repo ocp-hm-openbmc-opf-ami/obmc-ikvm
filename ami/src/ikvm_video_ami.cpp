@@ -185,27 +185,20 @@ void Video::videoRecord(Video* video)
     {
         log<level::ERR>(
             "Remote Storage not Active(Available) requires reconfiguration");
-        videoRecFlag.store(false);
-        return;
-    }
-
-    auto i = video->buffersDone.front();
-
-    if (i < 0)
-    {
-        return;
-    }
-    auto data = video->getData(i);
-    if (!data)
-    {
+        Video::updateRecStat("Stop");
+        recThreadStatus.store(false);
         return;
     }
     if (!(isDir(recProcessDir)))
     {
         log<level::ERR>("Unable to create destination Path");
+        Video::updateRecStat("Stop");
+        recThreadStatus.store(false);
         return;
     }
 
+    auto i = video->buffersDone.front();
+    auto data = video->getData(i);
     auto size = video->getFrameSize(i);
     auto frameRate = video->getFrameRate();
     auto delay = (1000000 / frameRate) - 100;
@@ -216,6 +209,31 @@ void Video::videoRecord(Video* video)
     auto recDuration = std::chrono::seconds(10);
     auto recStart = std::chrono::steady_clock::now();
 
+    // Load No Signal Image into buffer
+    size_t noSignalImageSize = 0;
+    std::vector<char> noSignalImageBuffer;
+
+    std::ifstream noSignalImage(NO_SIGNAL_IMG_PATH,
+                                std::ios::binary | std::ios::ate);
+    if (noSignalImage)
+    {
+        noSignalImageSize = static_cast<size_t>(noSignalImage.tellg());
+        if (noSignalImageSize > 0)
+        {
+            noSignalImageBuffer.resize(noSignalImageSize);
+            noSignalImage.seekg(0, std::ios::beg);
+            if (!noSignalImage.read(
+                    noSignalImageBuffer.data(),
+                    static_cast<std::streamsize>(noSignalImageSize)))
+            {
+                noSignalImageSize = 0;
+                noSignalImageBuffer.clear();
+                noSignalImageBuffer.shrink_to_fit();
+                log<level::DEBUG>(
+                    "Failed to read No Signal image file. Proceeding without No Signal image");
+            }
+        }
+    }
     if (ikvm::recordToRemote)
     {
         recDuration = std::chrono::seconds(ikvm::maxDuration);
@@ -250,11 +268,19 @@ void Video::videoRecord(Video* video)
                     continue;
                 }
                 data = video->getData(i);
+                size = video->getFrameSize(i);
                 if (!data)
                 {
-                    continue;
+                    if (!noSignalImageBuffer.empty() && noSignalImageSize > 0)
+                    {
+                        data = noSignalImageBuffer.data();
+                        size = noSignalImageSize;
+                    }
+                    else
+                    {
+                        continue;
+                    }
                 }
-                size = video->getFrameSize(i);
 
                 count++;
                 outputSize += size;
@@ -311,8 +337,8 @@ void Video::videoRecord(Video* video)
         log<level::ERR>("Error : ", entry("ERROR=%s", e.what()));
 
         videoRecFlag.store(false);
-        recThreadStatus.store(false);
         Video::updateRecStat("Stop");
+        recThreadStatus.store(false);
 
         return;
     }
