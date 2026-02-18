@@ -3,27 +3,28 @@ project(
     'cpp',
     version: '1.0',
     license: 'GPLv2',
-    default_options: [
-        'cpp_std=c++20',
-        'werror=true',
-    ],
+    default_options: ['cpp_std=c++20', 'werror=true'],
     meson_version: '>=1.1.1',
 )
 
 cpp = meson.get_compiler('cpp')
 
-configure_file(input : 'conf/kvm-dbus-monitor.json',
-               output : 'kvm-dbus-monitor.json',
-               copy : true,
-               install_dir: '/etc/',
-               install : true)
+configure_file(
+    input: 'conf/kvm-dbus-monitor.json',
+    output: 'kvm-dbus-monitor.json',
+    copy: true,
+    install_dir: '/etc/',
+    install: true,
+)
 
 #following config will be kept as (backup) for reset
-configure_file(input : 'conf/kvm-dbus-monitor.json',
-               output : 'kvm-dbus-monitor_default.json',
-               copy : true,
-               install_dir: '/etc/',
-               install : true)
+configure_file(
+    input: 'conf/kvm-dbus-monitor.json',
+    output: 'kvm-dbus-monitor_default.json',
+    copy: true,
+    install_dir: '/etc/',
+    install: true,
+)
 
 executable(
     'kvm-dbus-monitor',
@@ -42,7 +43,11 @@ executable(
         dependency('boost'),
     ],
     link_args: ['-lcrypt', '-lstdc++fs'],
-    cpp_args: ['-DBOOST_ALL_NO_LIB', '-DBOOST_SYSTEM_NO_DEPRECATED', '-DBOOST_ERROR_CODE_HEADER_ONLY'],
+    cpp_args: [
+        '-DBOOST_ALL_NO_LIB',
+        '-DBOOST_SYSTEM_NO_DEPRECATED',
+        '-DBOOST_ERROR_CODE_HEADER_ONLY',
+    ],
     install: true,
 )
 
@@ -50,23 +55,17 @@ fs = import('fs')
 fs.copyfile(
     'kvm-dbus-monitor.service',
     install: true,
-    install_dir:
-        dependency('systemd').get_variable(
-            'systemdsystemunitdir')
+    install_dir: dependency('systemd').get_variable('systemdsystemunitdir'),
 )
 
 fs.copyfile(
     'conf/auto-video-trigger.service',
     install: true,
-    install_dir:
-        dependency('systemd').get_variable(
-            'systemdsystemunitdir')
+    install_dir: dependency('systemd').get_variable('systemdsystemunitdir'),
 )
 
 fs.copyfile(
     'conf/auto-video-trigger.timer',
     install: true,
-    install_dir:
-        dependency('systemd').get_variable(
-            'systemdsystemunitdir')
+    install_dir: dependency('systemd').get_variable('systemdsystemunitdir'),
 )

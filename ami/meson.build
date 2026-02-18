@@ -10,46 +10,32 @@ ami_sources = [
     'ami/src/ikvm_video_ami.cpp',
 ]
 
-image_files = [
-    'misc/POWER_OFF.jpg',
-    'misc/NO_SIGNAL.jpg',
-]
-install_data(
-    image_files,
-    install_mode: 'r--r--r--',
-    install_dir: '/etc/'
-)
+image_files = ['misc/POWER_OFF.jpg', 'misc/NO_SIGNAL.jpg']
+install_data(image_files, install_mode: 'r--r--r--', install_dir: '/etc/')
 
 install_data(
     'misc/connect_dummy_ipkvm_client.sh',
     install_mode: 'rwxr-xr-x',
-    install_dir: get_option('bindir')
+    install_dir: get_option('bindir'),
 )
 
 fs = import('fs')
 fs.copyfile(
     'misc/start-ipkvm.socket',
     install: true,
-    install_dir:
-        dependency('systemd').get_variable(
-            'systemdsystemunitdir')
+    install_dir: dependency('systemd').get_variable('systemdsystemunitdir'),
 )
 
 # Install the Drop-in file
 fs.copyfile(
     'misc/10_ExecStop_Session_Clear.conf',
     install: true,
-    install_dir:
-        dependency('systemd').get_variable(
-            'systemdsystemunitdir')
-            /'start-ipkvm.service.d'
+    install_dir: dependency('systemd').get_variable('systemdsystemunitdir') / 'start-ipkvm.service.d',
 )
 
 # Install Dummy-Client service
 fs.copyfile(
     'misc/start-dummy-ipkvm-client.service',
     install: true,
-    install_dir:
-        dependency('systemd').get_variable(
-            'systemdsystemunitdir')
+    install_dir: dependency('systemd').get_variable('systemdsystemunitdir'),
 )
