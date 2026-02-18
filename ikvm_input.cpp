@@ -187,6 +187,8 @@ void Input::keyEvent(rfbBool down, rfbKeySym key, rfbClientPtr cl)
     {
         return;
     }
+    std::unique_lock<std::mutex> keLock(input->keyEventMutex);
+
     /* read Keyboard output before processing keyevent */
     input->readKeyBoardOutReport();
 
@@ -280,6 +282,8 @@ void Input::keyEvent(rfbBool down, rfbKeySym key, rfbClientPtr cl)
             }
         }
     }
+
+    keLock.unlock();
 
     if (sendKeyboard)
     {
