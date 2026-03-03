@@ -33,7 +33,9 @@ void Monitor::initialize(
     matchers.emplace_back(sessionMonitor(connection));
     matchers.emplace_back(sessionTimeout(connection));
     matchers.emplace_back(powerStatMonitor(connection));
+#ifndef MULTI_HOST_DEFAULT_MODE
     matchers.emplace_back(monitoringKvmStatus(connection));
+#endif
     matchers.emplace_back(videoRecordMonitor(connection));
 }
 
@@ -222,16 +224,12 @@ sdbusplus::bus::match_t Monitor::powerStatMonitor(
             {
                 if (entry.first == "CurrentPowerState")
                 {
-                    if (std::get<std::string>(entry.second).find("Off") !=
-                        std::string::npos)
-                    {
+                    const auto& powerValue =
+                        std::get<std::string>(entry.second);
+                    if (powerValue.find("Off") != std::string::npos)
                         hostPowerState = "Off";
-                    }
-                    else if (std::get<std::string>(entry.second).find("On") !=
-                             std::string::npos)
-                    {
+                    else if (powerValue.find("On") != std::string::npos)
                         hostPowerState = "On";
-                    }
                 }
             }
         }

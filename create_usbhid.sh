@@ -1,7 +1,26 @@
 #!/bin/sh
 
-hid_conf_directory="/sys/kernel/config/usb_gadget/obmc_hid"
-dev_name="1e6a0000.usb-vhub"
+if [ "$2" = "1" ]; then
+    # For AST2700 dual nodes - Node 1
+    hid_conf_directory="/sys/kernel/config/usb_gadget/obmc_hid1"
+    # Check for Venice platform first, then EVB
+    if [ -e "/sys/bus/platform/devices/12021000.usb-vhub" ]; then
+        dev_name="12021000.usb-vhub"  # Venice Node 1
+    else
+        dev_name="12062000.usb-vhub"  # EVB Node 1
+    fi
+else
+    # Check if AST2600 platform
+    if [ -e "/sys/bus/platform/devices/1e6a0000.usb-vhub" ]; then
+        # For AST2600
+        hid_conf_directory="/sys/kernel/config/usb_gadget/obmc_hid"
+        dev_name="1e6a0000.usb-vhub"
+    else
+        # For AST2700 - Node 0
+        hid_conf_directory="/sys/kernel/config/usb_gadget/obmc_hid"
+        dev_name="12060000.usb-vhub"
+    fi
+fi
 
 create_hid() {
     # create gadget
