@@ -13,6 +13,9 @@
  */
 #include "ami/include/ikvm_utils.hpp"
 
+#include <chrono>
+#include <thread>
+
 namespace ikvm
 {
 const char* DBUS_PROPERTIES_INTERFACE = "org.freedesktop.DBus.Properties";
@@ -63,10 +66,13 @@ const std::string serviceMgrIface =
 
 std::vector<uint8_t> activeSessionIDs;
 
-const std::string pwrStatService = "xyz.openbmc_project.State.Chassis";
-const std::string pwrStatObjPath = "/xyz/openbmc_project/state/chassis0";
+std::string pwrStatService = "xyz.openbmc_project.State.Chassis";
+std::string pwrStatObjPath = "/xyz/openbmc_project/state/chassis0";
 const std::string pwrStatIface = "xyz.openbmc_project.State.Chassis";
 std::string hostPowerState = "Unknown";
+
+std::string videoDevicePath = "/dev/video0"; // Default to video0
+uint8_t kvmInstanceId = 0; // 0 for kvm (video0), 1 for kvm1 (video1)
 
 const std::string eventLogService = "xyz.openbmc_project.Logging";
 const std::string eventLogObjPath = "/xyz/openbmc_project/logging";
@@ -101,6 +107,33 @@ bool isAst2700Platform = false;
  *  <<<<<<<<<<<<<<< UTILITY METHOD DEFINATIONS >>>>>>>>>>>>>>>>>>
  * ===============================================================
  */
+
+void detectKvmInstance(const std::string& videoPath)
+{
+    videoDevicePath = videoPath;
+
+#ifdef MULTI_HOST_DEFAULT_MODE
+    // Dual-node: try chassis1/chassis2, fallback to chassis0
+    if (videoPath == "/dev/video1")
+    {
+        kvmInstanceId = 1;
+        pwrStatService = "xyz.openbmc_project.State.Chassis2";
+        pwrStatObjPath = "/xyz/openbmc_project/state/chassis2";
+    }
+    else
+    {
+        kvmInstanceId = 0;
+        pwrStatService = "xyz.openbmc_project.State.Chassis1";
+        pwrStatObjPath = "/xyz/openbmc_project/state/chassis1";
+    }
+#else
+    // Single-node
+    kvmInstanceId = 0;
+    pwrStatService = "xyz.openbmc_project.State.Chassis";
+    pwrStatObjPath = "/xyz/openbmc_project/state/chassis0";
+#endif
+}
+
 void createUtilities()
 {
     isDir(bsodDir);
@@ -128,66 +161,68 @@ bool isDir(const std::string& path)
 
 void powerStatusInit()
 {
-    try
+    // Retry up to 5 times with 1 second delays to wait for chassis service
+    // to start
+    const int maxRetries = 5;
+#ifdef MULTI_HOST_DEFAULT_MODE
+    bool fallbackAttempted = false;
+#endif
+
+    for (int retry = 0; retry < maxRetries; retry++)
     {
-        auto busPowerStat = sdbusplus::bus::new_default_system();
-        auto msgPowerStat = busPowerStat.new_method_call(
-            pwrStatService.c_str(), pwrStatObjPath.c_str(),
-            DBUS_PROPERTIES_INTERFACE, "Get");
-
-        msgPowerStat.append(pwrStatIface.c_str(), "CurrentPowerState");
-
-        auto reply = busPowerStat.call(msgPowerStat);
-
-        if (reply.is_method_error())
+        if (retry > 0)
         {
-            log<level::ERR>("D-Bus method call error.");
-            hostPowerState = "Unknown";
-            return;
+            std::this_thread::sleep_for(std::chrono::seconds(1));
         }
 
-        std::variant<std::string> powerStr;
-        reply.read(powerStr);
-
-        // Initialize hostPowerState
-        if (auto pws = std::get_if<std::string>(&powerStr))
+        try
         {
-            if (pws->find("Off") != std::string::npos)
+            auto busPowerStat = sdbusplus::bus::new_default_system();
+            auto msgPowerStat = busPowerStat.new_method_call(
+                pwrStatService.c_str(), pwrStatObjPath.c_str(),
+                DBUS_PROPERTIES_INTERFACE, "Get");
+            msgPowerStat.append(pwrStatIface.c_str(), "CurrentPowerState");
+
+            auto reply = busPowerStat.call(msgPowerStat);
+            std::variant<std::string> powerStr;
+            reply.read(powerStr);
+
+            if (auto pws = std::get_if<std::string>(&powerStr))
             {
-                hostPowerState = "Off";
-            }
-            else if (pws->find("On") != std::string::npos)
-            {
-                hostPowerState = "On";
-            }
-            else
-            {
-                hostPowerState = "Unknown";
-                log<level::ERR>("Unexpected power state");
+                if (pws->find("Off") != std::string::npos)
+                    hostPowerState = "Off";
+                else if (pws->find("On") != std::string::npos)
+                    hostPowerState = "On";
+                else
+                    hostPowerState = "Unknown";
+
+                log<level::DEBUG>("Power state initialized",
+                                  entry("STATE=%s", hostPowerState.c_str()),
+                                  entry("PATH=%s", pwrStatObjPath.c_str()));
+                return; // Successfully got power state
             }
         }
-        else
+        catch (const sdbusplus::exception::SdBusError& e)
         {
-            hostPowerState = "Unknown";
-            log<level::ERR>("Unexpected variant type for power state.");
+#ifdef MULTI_HOST_DEFAULT_MODE
+            // On first failure, try chassis0 fallback once
+            if (!fallbackAttempted &&
+                (pwrStatObjPath == "/xyz/openbmc_project/state/chassis1" ||
+                 pwrStatObjPath == "/xyz/openbmc_project/state/chassis2"))
+            {
+                pwrStatService = "xyz.openbmc_project.State.Chassis";
+                pwrStatObjPath = "/xyz/openbmc_project/state/chassis0";
+                fallbackAttempted = true;
+                retry = -1; // Reset retry counter for chassis0
+                continue;
+            }
+#endif
         }
+    }
 
-        log<level::INFO>("[updated]",
-                         entry("hostPowerState: %s ", hostPowerState.c_str()));
-    }
-    catch (const sdbusplus::exception::SdBusError& e)
-    {
-        log<level::ERR>(" D-Bus call Failed", entry("ERROR=%s", e.what()));
-        hostPowerState = "Unknown";
-        return;
-    }
-    catch (const std::exception& e)
-    {
-        log<level::ERR>("Error handling for Host power state ",
-                        entry("ERROR=%s", e.what()));
-        hostPowerState = "Unknown";
-        return;
-    }
+    // Failed to get power state after all retries
+    hostPowerState = "Unknown";
+    log<level::ERR>("Failed to get power state after retries");
 }
 
 void sessionTimeout()

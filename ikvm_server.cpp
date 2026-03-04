@@ -63,6 +63,12 @@ Server::Server(const Args& args, Input& i, Video& v) :
 
     rfbStringToAddr(&ip[0], &server->listenInterface);
 
+    /* Support AST2750 dual nodes */
+    if (args.getVideoPath() == "/dev/video1")
+    {
+        server->port = 5901;
+    }
+
     rfbInitServer(server);
 
     rfbMarkRectAsModified(server, 0, 0, video.getWidth(), video.getHeight());
@@ -177,6 +183,7 @@ void Server::sendFrame()
 
         /* Disconnecting the clients immediately when KVM has been disabled from
          * WebUI*/
+#ifndef MULTI_HOST_DEFAULT_MODE
         if (isKvmDisabled)
         {
             handleKVMServiceDisabled(cl->screen);
@@ -185,6 +192,7 @@ void Server::sendFrame()
             ikvm::eventLogSupport("OpenBMC.0.1.KVMRedirectionDisabled");
             continue;
         }
+#endif
 
         /* Disconnect the clients when unregister happen from other services*/
         if (cd->sessionId)
@@ -450,7 +458,15 @@ void Server::clientGone(rfbClientPtr cl)
 
     if (server->numClients == 0)
     {
-        server->input.disconnect();
+        try
+        {
+            server->input.disconnect();
+        }
+        catch (const std::exception& e)
+        {
+            log<level::ERR>("Error disconnecting input",
+                            entry("ERROR=%s", e.what()));
+        }
         updatePowerSaveMode(1);
         rfbMarkRectAsModified(server->server, 0, 0, server->video.getWidth(),
                               server->video.getHeight());

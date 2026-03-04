@@ -1,0 +1,7 @@
+option(
+    'dual_node',
+    type : 'feature',
+    value: 'disabled' ,
+    description : 'Enable Dual Node support'
+)
+
