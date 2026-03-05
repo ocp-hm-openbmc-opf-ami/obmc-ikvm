@@ -56,6 +56,7 @@ class Server
                                          KVM_DEFAULT_USER_ID, MOUNTING_METHOD);
             clientInfoReceived = false;
             ivtpWaitCycles = 0;
+            desktopName = nullptr;
         }
         ~ClientData() = default;
         ClientData(const ClientData&) = default;
@@ -74,6 +75,7 @@ class Server
         sessionInfo clientInfo;
         bool clientInfoReceived;
         uint32_t ivtpWaitCycles;
+        const char* desktopName;
 
         /* @brief Getting last activity time based on key and pointer event */
         std::chrono::time_point<std::chrono::steady_clock> lastActivityTime;
