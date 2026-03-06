@@ -104,16 +104,29 @@ class Input
         0x40  // right alt
     };
     /* @brief Path to the HID gadget UDC */
-    static constexpr const char* hidUdcPath =
+    static constexpr const char* OBMC_HID_PATH_node0 =
         "/sys/kernel/config/usb_gadget/obmc_hid/UDC";
+#ifdef MULTI_HOST_DEFAULT_MODE
+    static constexpr const char* OBMC_HID_PATH_node1 =
+        "/sys/kernel/config/usb_gadget/obmc_hid1/UDC";
+#endif
     /* @brief Path to the USB virtual hub */
     static constexpr const char* usbVirtualHubPath =
         "/sys/bus/platform/devices/1e6a0000.usb-vhub";
     /* @brief Path to the AST2700 A0 and A1 USB virtual hub */
     static constexpr const char* usbVirtualHubPath2700A0 =
         "/sys/bus/platform/devices/12011000.usb-vhub";
-    static constexpr const char* usbVirtualHubPath2700A1 =
+    /* @brief Path to Venice single node and dual node0 USB virtual hub */
+    static constexpr const char* usbVirtualHubPath2700A1_node0 =
         "/sys/bus/platform/devices/12060000.usb-vhub";
+#ifdef MULTI_HOST_DEFAULT_MODE
+    /* Node 1 - Venice platform (12021000) */
+    static constexpr const char* usbVirtualHubPath2700A1_node1 =
+        "/sys/bus/platform/devices/12021000.usb-vhub";
+    /* Node 1 - EVB platform (12062000) */
+    static constexpr const char* usbVirtualHubPath2700A1_node1b =
+        "/sys/bus/platform/devices/12062000.usb-vhub";
+#endif
     /* @brief Retry limit for writing an HID report */
     static constexpr int HID_REPORT_RETRY_MAX = 5;
     /*
@@ -154,6 +167,8 @@ class Input
     std::string udcName;
     /* @brief Holds the KeyboardLED state of Host (AMI Extension) */
     LEDData_t keyboardLedState;
+    /* @brief Path to the HID gadget UDC */
+    std::string hidUdcPath;
     /*
      * @brief Mapping of RFB key code to report data index to keep track
      *        of which keys are down

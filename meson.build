@@ -7,6 +7,15 @@ project(
     meson_version: '>=1.1.1',
 )
 
+
+# Check and define macro for dual node support
+if get_option('dual_node').enabled()
+    add_project_arguments('-DMULTI_HOST_DEFAULT_MODE', language: 'cpp')
+    message('Dual Node support is enabled')
+else
+    message('Dual Node support is disabled')
+endif
+
 install_data(
     'create_usbhid.sh',
     install_mode: 'rwxr-xr-x',
@@ -42,5 +51,14 @@ fs = import('fs')
 fs.copyfile(
     'start-ipkvm.service',
     install: true,
-    install_dir: dependency('systemd').get_variable('systemd_system_unit_dir'),
+    install_dir: dependency('systemd').get_variable('systemdsystemunitdir'),
 )
+
+# Install dual node service only if dual node is enabled
+if get_option('dual_node').enabled()
+    fs.copyfile(
+        'start-ipkvm1.service',
+        install: true,
+        install_dir: dependency('systemd').get_variable('systemdsystemunitdir'),
+    )
+endif

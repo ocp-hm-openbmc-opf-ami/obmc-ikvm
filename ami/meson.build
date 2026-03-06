@@ -26,12 +26,23 @@ fs.copyfile(
     install_dir: dependency('systemd').get_variable('systemdsystemunitdir'),
 )
 
-# Install the Drop-in file
-fs.copyfile(
-    'misc/10_ExecStop_Session_Clear.conf',
-    install: true,
-    install_dir: dependency('systemd').get_variable('systemdsystemunitdir') / 'start-ipkvm.service.d',
-)
+# Install dual node socket only if dual node is enabled
+if get_option('dual_node').enabled()
+    fs.copyfile(
+        'misc/start-ipkvm1.socket',
+        install: true,
+        install_dir: dependency('systemd').get_variable('systemdsystemunitdir'),
+    )
+endif
+
+# Install the Drop-in file only for single node (not dual node)
+if not get_option('dual_node').enabled()
+    fs.copyfile(
+        'misc/10_ExecStop_Session_Clear.conf',
+        install: true,
+        install_dir: dependency('systemd').get_variable('systemdsystemunitdir') / 'start-ipkvm.service.d',
+    )
+endif
 
 # Install Dummy-Client service
 fs.copyfile(

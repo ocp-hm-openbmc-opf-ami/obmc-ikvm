@@ -1,15 +1,26 @@
 #!/bin/sh
 
-hid_conf_directory="/sys/kernel/config/usb_gadget/obmc_hid"
-SOC_FAMILY=$(cat /sys/bus/soc/devices/soc0/family)
-
-if [ "${SOC_FAMILY}" = "AST2600" ]; then
-    DEV_NAME="1e6a0000.usb-vhub"
-elif [ "${SOC_FAMILY}" = "AST2700" ] || [ "${SOC_FAMILY}" = "AST2750" ]; then
-    DEV_NAME="12060000.usb-vhub"
+if [ "$2" = "1" ]; then
+    # For AST2700 dual nodes - Node 1
+    hid_conf_directory="/sys/kernel/config/usb_gadget/obmc_hid1"
+    # Check for Venice platform first, then EVB
+    if [ -e "/sys/bus/platform/devices/12021000.usb-vhub" ]; then
+        DEV_NAME="12021000.usb-vhub"  # Venice Node 1
+    else
+        DEV_NAME="12062000.usb-vhub"  # EVB Node 1
+    fi
 else
-    echo "SOC Family is unsupported."
-    exit 1
+    hid_conf_directory="/sys/kernel/config/usb_gadget/obmc_hid"
+    SOC_FAMILY=$(cat /sys/bus/soc/devices/soc0/family)
+
+    if [ "${SOC_FAMILY}" = "AST2600" ]; then
+        DEV_NAME="1e6a0000.usb-vhub"
+    elif [ "${SOC_FAMILY}" = "AST2700" ] || [ "${SOC_FAMILY}" = "AST2750" ]; then
+        DEV_NAME="12060000.usb-vhub"
+    else
+        echo "SOC Family is unsupported."
+        exit 1
+    fi
 fi
 
 create_hid() {

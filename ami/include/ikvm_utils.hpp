@@ -150,9 +150,13 @@ using credentialVariant = std::variant<int32_t, sdbusplus::message::unix_fd>;
 extern std::vector<uint8_t> activeSessionIDs;
 
 /*@brief Host Power status D-Bus details*/
-extern const std::string pwrStatService;
-extern const std::string pwrStatObjPath;
+extern std::string pwrStatService;
+extern std::string pwrStatObjPath;
 extern const std::string pwrStatIface;
+
+/*@brief KVM instance tracking*/
+extern std::string videoDevicePath;
+extern uint8_t kvmInstanceId; // 0 for kvm (video0), 1 for kvm1 (video1)
 
 /*@brief Event Log D-Bus details */
 extern const std::string eventLogService;
@@ -215,6 +219,17 @@ void createUtilities();
  * @param[in] path - path to new directory
  */
 bool isDir(const std::string& path);
+
+/*
+ * @brief Detects KVM instance ID based on video device path and sets
+ *        the appropriate chassis path for power monitoring.
+ *        - /dev/video0 -> kvm (chassis1 for dual node)
+ *        - /dev/video1 -> kvm1 (chassis2 for dual node)
+ *
+ * @param[in] videoPath - The video device path (e.g., /dev/video0)
+ */
+void detectKvmInstance(const std::string& videoPath);
+
 /*
  * @brief Gets the initial value of hostPowerState from external service.
  */

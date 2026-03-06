@@ -29,6 +29,21 @@ Input::Input(const std::string& kbdPath, const std::string& ptrPath,
     keyboardPath(kbdPath), pointerPath(ptrPath), udcName(udc),
     keyboardLedState{INITIAL_LED_STATE}
 {
+#ifdef MULTI_HOST_DEFAULT_MODE
+    /* support AST27X0 Dual node */
+    if (keyboardPath == "/dev/hidg2")
+    {
+        hidUdcPath = OBMC_HID_PATH_node1;
+    }
+    else
+    {
+        hidUdcPath = OBMC_HID_PATH_node0;
+    }
+#else
+    /* Single node support only */
+    hidUdcPath = OBMC_HID_PATH_node0;
+#endif
+
     hidUdcStream.exceptions(std::ofstream::failbit | std::ofstream::badbit);
     hidUdcStream.open(hidUdcPath, std::ios::out | std::ios::app);
 }
@@ -58,17 +73,45 @@ void Input::connect()
             bool found = false;
             std::string detectedHubPath;
 
-            if (fs::exists(usbVirtualHubPath2700A0))
+#ifdef MULTI_HOST_DEFAULT_MODE
+            // Determine hub path based on which node this is (obmc_hid vs
+            // obmc_hid1)
+            if (hidUdcPath == OBMC_HID_PATH_node1)
             {
-                detectedHubPath = usbVirtualHubPath2700A0;
-            }
-            else if (fs::exists(usbVirtualHubPath2700A1))
-            {
-                detectedHubPath = usbVirtualHubPath2700A1;
+                // Node 1: Check Venice first, then EVB
+                if (fs::exists(usbVirtualHubPath2700A1_node1))
+                {
+                    detectedHubPath = usbVirtualHubPath2700A1_node1;
+                }
+                else if (fs::exists(usbVirtualHubPath2700A1_node1b))
+                {
+                    detectedHubPath = usbVirtualHubPath2700A1_node1b;
+                }
+                else if (fs::exists(usbVirtualHubPath2700A0))
+                {
+                    detectedHubPath = usbVirtualHubPath2700A0;
+                }
+                else
+                {
+                    detectedHubPath = usbVirtualHubPath;
+                }
             }
             else
+#endif
             {
-                detectedHubPath = usbVirtualHubPath;
+                // Node 0 or single node
+                if (fs::exists(usbVirtualHubPath2700A0))
+                {
+                    detectedHubPath = usbVirtualHubPath2700A0;
+                }
+                else if (fs::exists(usbVirtualHubPath2700A1_node0))
+                {
+                    detectedHubPath = usbVirtualHubPath2700A1_node0;
+                }
+                else
+                {
+                    detectedHubPath = usbVirtualHubPath;
+                }
             }
 
             for (const auto& port : fs::directory_iterator(detectedHubPath))

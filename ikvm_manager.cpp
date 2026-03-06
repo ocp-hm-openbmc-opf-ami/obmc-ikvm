@@ -17,7 +17,11 @@ Manager::Manager(const Args& args) :
     video(args.getVideoPath(), input, args.getFrameRate(),
           args.getSubsampling(), args.getFormat()),
     server(args, input, video), monitor()
-{}
+{
+    // Detect KVM instance based on video device path before initializing
+    // utilities
+    detectKvmInstance(args.getVideoPath());
+}
 
 void Manager::run()
 {

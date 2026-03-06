@@ -271,6 +271,12 @@ void Video::resize()
         }
     }
 
+    // If buffers vector is not empty,need to deallocate even if data is nullptr
+    if (!needsResizeCall && buffers.size() > 0)
+    {
+        needsResizeCall = true;
+    }
+
     if (needsResizeCall)
     {
         rc = ioctl(fd, VIDIOC_STREAMOFF, &type);
@@ -387,6 +393,7 @@ void Video::resize()
             log<level::ERR>("Exception caught during ReadFailure logging",
                             entry("ERROR=%s", e.what()));
         }
+        return;
     }
 
     buffers.resize(req.count);
@@ -693,6 +700,7 @@ void Video::stop()
     }
 
     buffersDone.clear();
+    resizeAfterOpen = false;
 
     rc = ioctl(fd, VIDIOC_STREAMOFF, &type);
     if (rc)
@@ -710,6 +718,8 @@ void Video::stop()
             buffers[i].queued = false;
         }
     }
+
+    buffers.clear();
 
     close(fd);
     fd = -1;
