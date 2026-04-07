@@ -197,9 +197,6 @@ void Video::videoRecord(Video* video)
         return;
     }
 
-    auto i = video->buffersDone.front();
-    auto data = video->getData(i);
-    auto size = video->getFrameSize(i);
     auto frameRate = video->getFrameRate();
     auto delay = (1000000 / frameRate) - 100;
     size_t outputSize = 0;
@@ -262,13 +259,17 @@ void Video::videoRecord(Video* video)
             if (std::chrono::steady_clock::now() - recStart <= recDuration)
             {
                 loopcount++;
-                i = video->buffersDone.front();
+                if (video->buffersDone.empty())
+                {
+                    continue;
+                }
+                auto i = video->buffersDone.front();
                 if (i < 0)
                 {
                     continue;
                 }
-                data = video->getData(i);
-                size = video->getFrameSize(i);
+                auto data = video->getData(i);
+                auto size = video->getFrameSize(i);
                 if (!data)
                 {
                     if (!noSignalImageBuffer.empty() && noSignalImageSize > 0)
