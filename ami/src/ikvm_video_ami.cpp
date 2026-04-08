@@ -259,17 +259,17 @@ void Video::videoRecord(Video* video)
             if (std::chrono::steady_clock::now() - recStart <= recDuration)
             {
                 loopcount++;
-                if (video->buffersDone.empty())
+                char* data = nullptr;
+                size_t size = 0;
+
+                if (!(video->buffersDone.empty() ||
+                      video->buffersDone.front() < 0))
                 {
-                    continue;
+                    auto i = video->buffersDone.front();
+                    data = video->getData(i);
+                    size = video->getFrameSize(i);
                 }
-                auto i = video->buffersDone.front();
-                if (i < 0)
-                {
-                    continue;
-                }
-                auto data = video->getData(i);
-                auto size = video->getFrameSize(i);
+
                 if (!data)
                 {
                     if (!noSignalImageBuffer.empty() && noSignalImageSize > 0)
