@@ -235,6 +235,8 @@ class Video
      * @param[in] video Video object
      */
     static void videoRecord(Video* video);
+    void pushRecFrame();
+    void clearRecQueue();
     /*
      * @brief dbus call to update video record status
      *
@@ -304,6 +306,14 @@ class Video
 
     /* @brief Pixel Format  */
     uint32_t pixelformat;
+
+    /* @brief Recording frame queue (fed by statusUpdateThread) */
+    std::mutex recMutex;
+    std::deque<std::vector<char>> recFrameQueue;
+    /* @brief Sequence number of the last frame pushed to recFrameQueue;
+     *        prevents pushing duplicate frames when sendFrame() skips
+     *        releaseFrames() (VNC client has needUpdate=false). */
+    uint32_t lastPushedSeq = UINT32_MAX;
 };
 
 } // namespace ikvm
