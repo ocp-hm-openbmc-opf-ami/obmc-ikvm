@@ -430,6 +430,26 @@ std::string Interface::EnableRemoteStorage(bool recordToRemote)
 
         jsonData["VideoRecord"]["RemoteStorage"]["RecordToRemote"] =
             recordToRemote;
+
+        if (!recordToRemote)
+        {
+            std::string localPath = "/tmp/video";
+
+            if (kvmDbus::isMountedFromRemote(localPath))
+            {
+                if (umount(localPath.c_str()) == 0)
+                {
+                    log<level::INFO>("Unmounted remote storage successfully");
+                }
+                else
+                {
+                    log<level::ERR>("Failed to unmount remote storage");
+                }
+            }
+
+            jsonData["VideoRecord"]["RemoteStorage"]["Active"] = false;
+            scrnRecRmtStoreIface->set_property("Active", false);
+        }
         kvmDbus::updateJson();
         scrnRecRmtStoreIface->set_property("RecordToRemote", recordToRemote);
         status = "Success";
