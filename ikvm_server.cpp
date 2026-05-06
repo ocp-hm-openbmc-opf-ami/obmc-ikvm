@@ -171,6 +171,12 @@ void Server::sendFrame()
     {
         ClientData* cd = (ClientData*)cl->clientData;
         rfbFramebufferUpdateMsg* fu = (rfbFramebufferUpdateMsg*)cl->updateBuf;
+
+        if (video.buffersDone.empty())
+        {
+            continue;
+        }
+
         auto i = video.buffersDone.front();
 
         if (!cd)
