@@ -192,11 +192,6 @@ class Video
     {
         return originalFormat;
     }
-    /* @brief Returns true if a format change requires a resize+server.resize */
-    inline bool isResizeAfterOpen() const
-    {
-        return resizeAfterOpen;
-    }
     /*
      * @brief Gets the bounding-box of the partial-jpeg
      *

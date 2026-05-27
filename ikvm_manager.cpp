@@ -142,11 +142,7 @@ void Manager::statusUpdateThread(Manager* manager)
             manager->video.stop();
         }
 
-        // Skip needsResize() during no-signal (VIDIOC_QUERY_DV_TIMINGS fails);
-        // use isResizeAfterOpen() instead.
-        bool doResize = noSignal ? manager->video.isResizeAfterOpen()
-                                 : manager->video.needsResize();
-        if (doResize)
+        if (manager->video.needsResize())
         {
             manager->waitServer();
             manager->videoDone = false;
@@ -158,12 +154,6 @@ void Manager::statusUpdateThread(Manager* manager)
         {
             manager->setVideoDone();
             manager->waitServer();
-        }
-
-        if (noSignal)
-        {
-            std::this_thread::sleep_for(std::chrono::microseconds(
-                1000000 / manager->video.getFrameRate()));
         }
     }
 }
