@@ -126,8 +126,8 @@ extern std::chrono::duration<uint64_t> timeoutValue;
 
 /*@brief session manager DBus- details*/
 extern const std::string smgrService;
-extern const std::string smgrObjPath;
-extern const std::string smgrIface;
+extern const std::string smgrKVMObjPath;
+extern const std::string smgrWEBObjPath;
 extern const std::string smgrKVMIface;
 extern const std::string smgrWebIface;
 
@@ -136,8 +136,8 @@ extern const std::string serviceMgrService;
 extern const std::string serviceMgrKvmObjPath;
 extern const std::string serviceMgrIface;
 
-using sessionInfo = std::tuple<uint8_t, std::string, std::string, uint8_t,
-                               uint8_t, uint8_t, std::string>;
+using sessionInfo =
+    std::tuple<uint8_t, std::string, std::string, uint8_t, uint8_t, uint8_t>;
 using sessionRet = std::vector<sessionInfo>;
 using propertyValue = std::variant<sessionRet>;
 

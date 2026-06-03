@@ -165,7 +165,7 @@ sdbusplus::bus::match_t Monitor::sessionMonitor(
 
     sdbusplus::bus::match_t triggerSignal(
         static_cast<sdbusplus::bus::bus&>(*conn),
-        "type='signal',member='PropertiesChanged',path='" + smgrObjPath +
+        "type='signal',member='PropertiesChanged',path='" + smgrKVMObjPath +
             "',arg0namespace='" + smgrKVMIface + "'",
         std::move(sessionCallback));
 

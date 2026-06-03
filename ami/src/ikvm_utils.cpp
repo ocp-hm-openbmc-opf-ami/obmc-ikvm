@@ -52,10 +52,12 @@ std::shared_ptr<sdbusplus::asio::dbus_interface> kvmScrnRecIface = nullptr;
 std::chrono::duration<uint64_t> timeoutValue =
     std::chrono::seconds(DEFAULT_TIMEOUT_VALUE);
 const std::string smgrService = "xyz.openbmc_project.SessionManager";
-const std::string smgrObjPath = "/xyz/openbmc_project/SessionManager";
-const std::string smgrIface = "xyz.openbmc_project.SessionManager";
-const std::string smgrKVMIface = "xyz.openbmc_project.SessionManager.Kvm";
-const std::string smgrWebIface = "xyz.openbmc_project.SessionManager.Web";
+const std::string smgrKVMObjPath = "/xyz/openbmc_project/SessionManager/kvm";
+const std::string smgrWEBObjPath = "/xyz/openbmc_project/SessionManager/web";
+const std::string smgrKVMIface =
+    "xyz.openbmc_project.SessionManager.KvmSessionInfo";
+const std::string smgrWebIface =
+    "xyz.openbmc_project.SessionManager.WebSessionInfo";
 
 const std::string serviceMgrService =
     "xyz.openbmc_project.Control.Service.Manager";

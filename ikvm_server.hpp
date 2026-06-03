@@ -51,9 +51,9 @@ class Server
             isNewSession = false;
             webSessionId = DEFAULT_SID;
             clientType = ClientType::UNKNOWN;
-            clientInfo = std::make_tuple(DEFAULT_SID, DEFAULT_IP, USER_NAME,
-                                         KVM, PRIV_LEVEL_ADMIN,
-                                         KVM_DEFAULT_USER_ID, MOUNTING_METHOD);
+            clientInfo =
+                std::make_tuple(DEFAULT_SID, DEFAULT_IP, USER_NAME, KVM,
+                                PRIV_LEVEL_ADMIN, KVM_DEFAULT_USER_ID);
             clientInfoReceived = false;
             ivtpWaitCycles = 0;
             desktopName = nullptr;
