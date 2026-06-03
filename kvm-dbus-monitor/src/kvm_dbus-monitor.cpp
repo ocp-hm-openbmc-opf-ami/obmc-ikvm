@@ -28,16 +28,22 @@ void Monitor::initialize(
         triggerEvents = (uint32_t)
             jsonData["VideoRecord"]["TriggerSettings"]["TriggeringEvents"];
 
-        // Add matchers for monitoring variuou D-bus events
+        // Add matchers for monitoring various D-bus events
 
         matchers.emplace_back(bsodErrorEventMonitor(conn));
         matchers.emplace_back(tempSensCritMonitor(conn));
         matchers.emplace_back(tempSensNonCritMonitor(conn));
+        matchers.emplace_back(tempSensNonRecovMonitor(conn));
         matchers.emplace_back(voltSensCritMonitor(conn));
         matchers.emplace_back(voltSensNonCritMonitor(conn));
+        matchers.emplace_back(voltSensNonRecovMonitor(conn));
         matchers.emplace_back(hostPowerOptMonitor(conn));
         matchers.emplace_back(hostForcedShutdownMonitor(conn));
         matchers.emplace_back(lpcResetMonitor(conn));
+        matchers.emplace_back(fanSensWarnMonitor(conn));
+        matchers.emplace_back(fanSensCritMonitor(conn));
+        matchers.emplace_back(fanRemovalMonitor(conn));
+        matchers.emplace_back(watchdogTimeoutMonitor(conn));
     }
     catch (const std::exception& e)
     {
@@ -225,6 +231,55 @@ sdbusplus::bus::match_t Monitor::tempSensNonCritMonitor(
     return tempNonCritMatcher;
 }
 
+sdbusplus::bus::match_t Monitor::tempSensNonRecovMonitor(
+    const std::shared_ptr<sdbusplus::asio::connection> conn)
+{
+    auto tempNonRecovCallback = [conn, this](sdbusplus::message_t& msg) {
+        try
+        {
+            kvmDbus::loadJson();
+            triggerEvents = (uint32_t)
+                jsonData["VideoRecord"]["TriggerSettings"]["TriggeringEvents"];
+            if (!(triggerEvents.test(triggerEvent::nonRecovTmpVolt)))
+            {
+                log<level::DEBUG>(
+                    " Non-Recoverable temp: not Selected as Triggering event");
+                return;
+            }
+
+            std::string interfaceName;
+            boost::container::flat_map<std::string, std::variant<bool>>
+                scrnshotProperty;
+            msg.read(interfaceName, scrnshotProperty);
+
+            for (const auto& entry : scrnshotProperty)
+            {
+                if (entry.first == "NonRecoverableAlarmHigh" ||
+                    entry.first == "NonRecoverableAlarmLow")
+                {
+                    if (std::get<bool>(entry.second))
+                    {
+                        AsyncRecordTrigger(conn, "Start");
+                    }
+                }
+            }
+        }
+        catch (const std::exception& e)
+        {
+            log<level::ERR>("Error : ", entry("ERROR=%s", e.what()));
+        }
+    };
+
+    sdbusplus::bus::match_t tempNonRecovMatcher(
+        static_cast<sdbusplus::bus::bus&>(*conn),
+        "type='signal',member='PropertiesChanged',path_namespace='" +
+            tempObjPathNamespace + "',arg0namespace='" + nonRecovInterface +
+            "'",
+        std::move(tempNonRecovCallback));
+
+    return tempNonRecovMatcher;
+}
+
 sdbusplus::bus::match_t Monitor::voltSensCritMonitor(
     const std::shared_ptr<sdbusplus::asio::connection> conn)
 {
@@ -282,7 +337,7 @@ sdbusplus::bus::match_t Monitor::voltSensNonCritMonitor(
             kvmDbus::loadJson();
             triggerEvents = (uint32_t)
                 jsonData["VideoRecord"]["TriggerSettings"]["TriggeringEvents"];
-            if (!(triggerEvents.test(triggerEvent::criticalTmpVolt)))
+            if (!(triggerEvents.test(triggerEvent::nonCriticalTmpVolt)))
             {
                 log<level::DEBUG>(
                     "Warning Voltage: not Selected as Triggering event");
@@ -319,6 +374,55 @@ sdbusplus::bus::match_t Monitor::voltSensNonCritMonitor(
         std::move(voltNonCritCallback));
 
     return voltNonCritMatcher;
+}
+
+sdbusplus::bus::match_t Monitor::voltSensNonRecovMonitor(
+    const std::shared_ptr<sdbusplus::asio::connection> conn)
+{
+    auto voltNonRecovCallback = [conn, this](sdbusplus::message_t& msg) {
+        try
+        {
+            kvmDbus::loadJson();
+            triggerEvents = (uint32_t)
+                jsonData["VideoRecord"]["TriggerSettings"]["TriggeringEvents"];
+            if (!(triggerEvents.test(triggerEvent::nonRecovTmpVolt)))
+            {
+                log<level::DEBUG>(
+                    "Non-Recoverable Voltage: not Selected as Triggering event");
+                return;
+            }
+
+            std::string interfaceName;
+            boost::container::flat_map<std::string, std::variant<bool>>
+                scrnshotProperty;
+            msg.read(interfaceName, scrnshotProperty);
+
+            for (const auto& entry : scrnshotProperty)
+            {
+                if (entry.first == "NonRecoverableAlarmHigh" ||
+                    entry.first == "NonRecoverableAlarmLow")
+                {
+                    if (std::get<bool>(entry.second))
+                    {
+                        AsyncRecordTrigger(conn, "Start");
+                    }
+                }
+            }
+        }
+        catch (const std::exception& e)
+        {
+            log<level::ERR>("Error : ", entry("ERROR=%s", e.what()));
+        }
+    };
+
+    sdbusplus::bus::match_t voltNonRecovMatcher(
+        static_cast<sdbusplus::bus::bus&>(*conn),
+        "type='signal',member='PropertiesChanged',path_namespace='" +
+            voltObjPathNamespace + "',arg0namespace='" + nonRecovInterface +
+            "'",
+        std::move(voltNonRecovCallback));
+
+    return voltNonRecovMatcher;
 }
 
 sdbusplus::bus::match_t Monitor::hostPowerOptMonitor(
@@ -542,6 +646,273 @@ sdbusplus::bus::match_t Monitor::lpcResetMonitor(
         std::move(lpcResetCallback));
 
     return lpcResetMatcher;
+}
+
+sdbusplus::bus::match_t Monitor::fanSensWarnMonitor(
+    const std::shared_ptr<sdbusplus::asio::connection> conn)
+{
+    auto fanWarnCallback = [conn, this](sdbusplus::message_t& msg) {
+        try
+        {
+            kvmDbus::loadJson();
+            triggerEvents = (uint32_t)
+                jsonData["VideoRecord"]["TriggerSettings"]["TriggeringEvents"];
+            if (!(triggerEvents.test(triggerEvent::fanstatechanged)))
+            {
+                log<level::DEBUG>(
+                    "Fan Warning: not Selected as Triggering event");
+                return;
+            }
+
+            // Suppress threshold alarms after fan reconnect
+            // to avoid false AVR triggers during fan spin-up
+            std::string fanPath = msg.get_path();
+            auto it = fanReconnectTimes.find(fanPath);
+            if (it != fanReconnectTimes.end())
+            {
+                auto elapsed = std::chrono::steady_clock::now() - it->second;
+                if (elapsed < std::chrono::seconds(fanReconnectSuppressionSecs))
+                {
+                    log<level::DEBUG>(
+                        "Fan Warning: suppressed during reconnect spin-up",
+                        entry("FAN_PATH=%s", fanPath.c_str()));
+                    return;
+                }
+                fanReconnectTimes.erase(it);
+            }
+
+            std::string interfaceName;
+            boost::container::flat_map<std::string, std::variant<bool>>
+                fanProperty;
+            msg.read(interfaceName, fanProperty);
+
+            for (const auto& entry : fanProperty)
+            {
+                if (entry.first == "WarningAlarmHigh" ||
+                    entry.first == "WarningAlarmLow")
+                {
+                    if (std::get<bool>(entry.second))
+                    {
+                        AsyncRecordTrigger(conn, "Start");
+                        return;
+                    }
+                }
+            }
+        }
+        catch (const std::exception& e)
+        {
+            log<level::ERR>("Error handling Fan Warning signal",
+                            entry("ERROR=%s", e.what()));
+        }
+    };
+
+    sdbusplus::bus::match_t fanWarnMatcher(
+        static_cast<sdbusplus::bus::bus&>(*conn),
+        "type='signal',member='PropertiesChanged',path_namespace='" +
+            fanObjPathNamespace + "',arg0namespace='" + nonCritInterface + "'",
+        std::move(fanWarnCallback));
+
+    return fanWarnMatcher;
+}
+
+sdbusplus::bus::match_t Monitor::fanSensCritMonitor(
+    const std::shared_ptr<sdbusplus::asio::connection> conn)
+{
+    auto fanCritCallback = [conn, this](sdbusplus::message_t& msg) {
+        try
+        {
+            kvmDbus::loadJson();
+            triggerEvents = (uint32_t)
+                jsonData["VideoRecord"]["TriggerSettings"]["TriggeringEvents"];
+            if (!(triggerEvents.test(triggerEvent::fanstatechanged)))
+            {
+                log<level::DEBUG>(
+                    "Fan Critical: not Selected as Triggering event");
+                return;
+            }
+
+            // Suppress threshold alarms after fan reconnect
+            // to avoid false AVR triggers during fan spin-up
+            std::string fanPath = msg.get_path();
+            auto it = fanReconnectTimes.find(fanPath);
+            if (it != fanReconnectTimes.end())
+            {
+                auto elapsed = std::chrono::steady_clock::now() - it->second;
+                if (elapsed < std::chrono::seconds(fanReconnectSuppressionSecs))
+                {
+                    log<level::DEBUG>(
+                        "Fan Critical: suppressed during reconnect spin-up",
+                        entry("FAN_PATH=%s", fanPath.c_str()));
+                    return;
+                }
+                fanReconnectTimes.erase(it);
+            }
+
+            std::string interfaceName;
+            boost::container::flat_map<std::string, std::variant<bool>>
+                fanProperty;
+            msg.read(interfaceName, fanProperty);
+
+            for (const auto& entry : fanProperty)
+            {
+                if (entry.first == "CriticalAlarmHigh" ||
+                    entry.first == "CriticalAlarmLow")
+                {
+                    if (std::get<bool>(entry.second))
+                    {
+                        AsyncRecordTrigger(conn, "Start");
+                        return;
+                    }
+                }
+            }
+        }
+        catch (const std::exception& e)
+        {
+            log<level::ERR>("Error handling Fan Critical signal",
+                            entry("ERROR=%s", e.what()));
+        }
+    };
+
+    sdbusplus::bus::match_t fanCritMatcher(
+        static_cast<sdbusplus::bus::bus&>(*conn),
+        "type='signal',member='PropertiesChanged',path_namespace='" +
+            fanObjPathNamespace + "',arg0namespace='" + critInterface + "'",
+        std::move(fanCritCallback));
+
+    return fanCritMatcher;
+}
+
+sdbusplus::bus::match_t Monitor::fanRemovalMonitor(
+    const std::shared_ptr<sdbusplus::asio::connection> conn)
+{
+    auto fanRemovalCallback = [conn, this](sdbusplus::message_t& msg) {
+        try
+        {
+            // *** Read payload FIRST to correctly consume the message ***
+            bool fanRunning = true;
+            msg.read(fanRunning);
+            std::string fanPath = msg.get_path();
+
+            // Fan reconnected — record time for spin-up suppression window
+            if (fanRunning)
+            {
+                fanReconnectTimes[fanPath] = std::chrono::steady_clock::now();
+                log<level::DEBUG>(
+                    "Fan Reconnected - No AVR trigger (suppressing threshold alarms)",
+                    entry("FAN_PATH=%s", fanPath.c_str()),
+                    entry("SUPPRESSION_SECS=%u", fanReconnectSuppressionSecs));
+                return;
+            }
+
+            // Fan is NOT running — check trigger config
+            kvmDbus::loadJson();
+            triggerEvents = (uint32_t)
+                jsonData["VideoRecord"]["TriggerSettings"]["TriggeringEvents"];
+
+            if (!(triggerEvents.test(triggerEvent::fanstatechanged)))
+            {
+                log<level::DEBUG>(
+                    "Fan Removal: not Selected as Triggering event");
+                return;
+            }
+
+            // Guard: FanRunning signal also fires during host power
+            // on/off/reset event. Only trigger AVR when host is Running.
+            try
+            {
+                auto hostStateMsg = conn->new_method_call(
+                    "xyz.openbmc_project.State.Host", hostStateObjpath.c_str(),
+                    "org.freedesktop.DBus.Properties", "Get");
+                hostStateMsg.append(hostStateInterface,
+                                    std::string("CurrentHostState"));
+
+                auto hostStateResp = conn->call(hostStateMsg);
+                std::variant<std::string> hostStateVariant;
+                hostStateResp.read(hostStateVariant);
+                std::string hostState = std::get<std::string>(hostStateVariant);
+
+                if (hostState.find("Running") == std::string::npos)
+                {
+                    log<level::DEBUG>(
+                        "Fan Removal: Host not Running - ignoring signal",
+                        entry("HOST_STATE=%s", hostState.c_str()));
+                    return;
+                }
+            }
+            catch (const std::exception& e)
+            {
+                log<level::ERR>(
+                    "Fan Removal: Failed to read host state - skipping trigger",
+                    entry("ERROR=%s", e.what()));
+                return;
+            }
+
+            // Explicit guard — fanRunning must be false before triggering AVR
+            if (!fanRunning)
+            {
+                log<level::INFO>("Fan Removal/Fault detected - Triggering AVR",
+                                 entry("FAN_PATH=%s", fanPath.c_str()));
+                AsyncRecordTrigger(conn, "Start");
+            }
+        }
+        catch (const std::exception& e)
+        {
+            log<level::ERR>("Error handling Fan Removal signal",
+                            entry("ERROR=%s", e.what()));
+        }
+    };
+
+    // Direct "FanRunning" signal monitor for fan removal events.
+    sdbusplus::bus::match_t fanRemovalMatcher(
+        static_cast<sdbusplus::bus::bus&>(*conn),
+        "type='signal',path_namespace='" + fanObjPathNamespace +
+            "',interface='" + fanStatusInterface + "',member='FanRunning'",
+        std::move(fanRemovalCallback));
+
+    return fanRemovalMatcher;
+}
+
+sdbusplus::bus::match_t Monitor::watchdogTimeoutMonitor(
+    const std::shared_ptr<sdbusplus::asio::connection> conn)
+{
+    auto watchdogCallback = [conn, this](sdbusplus::message_t& msg) {
+        try
+        {
+            kvmDbus::loadJson();
+            triggerEvents = (uint32_t)
+                jsonData["VideoRecord"]["TriggerSettings"]["TriggeringEvents"];
+
+            if (!(triggerEvents.test(triggerEvent::watchdogTimer)))
+            {
+                log<level::DEBUG>(
+                    "Watchdog Timeout: not Selected as Triggering event");
+                return;
+            }
+
+            // Signal payload carries the ExpireAction string
+            // e.g. "xyz.openbmc_project.State.Watchdog.Action.None"
+            std::string expireAction;
+            msg.read(expireAction);
+
+            log<level::INFO>("Watchdog Timeout signal received",
+                             entry("ACTION=%s", expireAction.c_str()));
+
+            AsyncRecordTrigger(conn, "Start");
+        }
+        catch (const std::exception& e)
+        {
+            log<level::ERR>("Error handling Watchdog Timeout signal",
+                            entry("ERROR=%s", e.what()));
+        }
+    };
+
+    // Direct signal match for Watchdog "Timeout" signal.
+    sdbusplus::bus::match_t watchdogMatcher(
+        static_cast<sdbusplus::bus::bus&>(*conn),
+        "type='signal',interface='" + wdogInterface + "',member='Timeout'",
+        std::move(watchdogCallback));
+
+    return watchdogMatcher;
 }
 
 } // namespace kvmDbus

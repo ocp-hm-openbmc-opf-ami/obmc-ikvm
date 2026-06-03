@@ -98,8 +98,17 @@ extern const std::string tempObjPathNamespace;
 extern const std::string voltSensorService;
 extern const std::string voltObjPathNamespace;
 
+extern const std::string fanSensorService;
+extern const std::string fanObjPathNamespace;
+extern const std::string fanStatusInterface;
+
+extern const std::string wdogService;
+extern const std::string wdogObjPath;
+extern const std::string wdogInterface;
+
 extern const std::string critInterface;
 extern const std::string nonCritInterface;
+extern const std::string nonRecovInterface;
 
 extern const std::string lpcpath;
 extern const std::string lpcInterface;
@@ -122,6 +131,11 @@ extern const std::string chassisInterface;
 extern const uint16_t BSOD;
 
 extern json jsonData;
+
+// Duration (in seconds) to suppress fan threshold alarms after a fan
+// reconnect event, to avoid false AVR triggers during fan spin-up.
+extern const uint32_t fanReconnectSuppressionSecs;
+
 /*
  * ==========================================================
  * <<<<<<<<<<<<<<<<<< UTILITY METHODS >>>>>>>>>>>>>>>>>>>>>>
