@@ -22,6 +22,7 @@
 #include <cstdlib> // for system()
 #include <exception>
 #include <stdexcept>
+#include <thread>
 
 namespace ikvm
 {
@@ -179,6 +180,42 @@ void Video::setFrame(const char* ImgPath)
     }
 }
 
+void Video::pushRecFrame()
+{
+    if (!videoRecFlag.load() || !recThreadStatus.load())
+        return;
+
+    if (buffersDone.empty())
+        return;
+
+    auto i = buffersDone.front();
+    char* data = getData(i);
+    size_t size = getFrameSize(i);
+    if (!data || size == 0)
+        return;
+
+    {
+        std::lock_guard<std::mutex> lk(recMutex);
+        // Skip if same V4L2 frame (sendFrame skipped releaseFrames); guard is
+        // inside lock to avoid data race with clearRecQueue().
+        if (buffers[i].sequence == lastPushedSeq)
+            return;
+        if (recFrameQueue.size() < 30)
+        {
+            recFrameQueue.emplace_back(data, data + size);
+            lastPushedSeq = buffers[i].sequence;
+        }
+    }
+}
+
+void Video::clearRecQueue()
+{
+    std::lock_guard<std::mutex> lk(recMutex);
+    recFrameQueue.clear();
+    lastPushedSeq = UINT32_MAX; // reset so the first frame of next recording is
+                                // always captured
+}
+
 void Video::videoRecord(Video* video)
 {
     if (!(ikvm::active))
@@ -197,48 +234,17 @@ void Video::videoRecord(Video* video)
         return;
     }
 
-    auto i = video->buffersDone.front();
-    auto data = video->getData(i);
-    auto size = video->getFrameSize(i);
-    auto frameRate = video->getFrameRate();
-    auto delay = (1000000 / frameRate) - 100;
     size_t outputSize = 0;
     size_t maxSize = 7 * 1024 * 1024;
-    int count = 0;
-    int loopcount = 0;
     auto recDuration = std::chrono::seconds(10);
-    auto recStart = std::chrono::steady_clock::now();
 
-    // Load No Signal Image into buffer
-    size_t noSignalImageSize = 0;
-    std::vector<char> noSignalImageBuffer;
-
-    std::ifstream noSignalImage(NO_SIGNAL_IMG_PATH,
-                                std::ios::binary | std::ios::ate);
-    if (noSignalImage)
-    {
-        noSignalImageSize = static_cast<size_t>(noSignalImage.tellg());
-        if (noSignalImageSize > 0)
-        {
-            noSignalImageBuffer.resize(noSignalImageSize);
-            noSignalImage.seekg(0, std::ios::beg);
-            if (!noSignalImage.read(
-                    noSignalImageBuffer.data(),
-                    static_cast<std::streamsize>(noSignalImageSize)))
-            {
-                noSignalImageSize = 0;
-                noSignalImageBuffer.clear();
-                noSignalImageBuffer.shrink_to_fit();
-                log<level::DEBUG>(
-                    "Failed to read No Signal image file. Proceeding without No Signal image");
-            }
-        }
-    }
     if (ikvm::recordToRemote)
     {
         recDuration = std::chrono::seconds(ikvm::maxDuration);
         maxSize = (ikvm::maxSize) * 1024 * 1024;
     }
+
+    video->clearRecQueue();
 
     try
     {
@@ -256,52 +262,81 @@ void Video::videoRecord(Video* video)
         // Log the event of video recording start
         ikvm::eventLogSupport("OpenBMC.0.1.KVMAVRStart");
 
-        recStart = std::chrono::steady_clock::now();
+        // Fixed-period clock: guarantees exactly maxDuration×frameRate frames
+        // written.
+        auto frameInterval =
+            std::chrono::microseconds(1000000 / video->getFrameRate());
+
+        // Wait for first frame before starting clock so the full duration
+        // budget isn't consumed while statusUpdateThread is busy in
+        // sendFrame().
+        std::vector<char> lastFrameData;
+        while (videoRecFlag.load() && lastFrameData.empty())
+        {
+            {
+                std::lock_guard<std::mutex> lk(video->recMutex);
+                if (!video->recFrameQueue.empty())
+                {
+                    lastFrameData = std::move(video->recFrameQueue.front());
+                    video->recFrameQueue.clear();
+                }
+            }
+            if (lastFrameData.empty())
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+
+        if (lastFrameData.empty())
+        {
+            // videoRecFlag was cleared before first frame arrived
+            screenRec.close();
+            Video::updateRecStat("Stop");
+            recThreadStatus.store(false);
+            video->clearRecQueue();
+            return;
+        }
+
+        auto recStart = std::chrono::steady_clock::now();
+        auto nextTick = recStart + frameInterval;
+
+        // Write first frame immediately, then proceed with timed loop.
+        outputSize += lastFrameData.size();
+        screenRec.write(lastFrameData.data(), lastFrameData.size());
+
         while (videoRecFlag.load())
         {
-            if (std::chrono::steady_clock::now() - recStart <= recDuration)
-            {
-                loopcount++;
-                i = video->buffersDone.front();
-                if (i < 0)
-                {
-                    continue;
-                }
-                data = video->getData(i);
-                size = video->getFrameSize(i);
-                if (!data)
-                {
-                    if (!noSignalImageBuffer.empty() && noSignalImageSize > 0)
-                    {
-                        data = noSignalImageBuffer.data();
-                        size = noSignalImageSize;
-                    }
-                    else
-                    {
-                        continue;
-                    }
-                }
+            std::this_thread::sleep_until(nextTick);
+            nextTick += frameInterval;
 
-                count++;
-                outputSize += size;
-                if (outputSize > maxSize)
-                {
-                    videoRecFlag.store(false);
-                    log<level::INFO>("recording stopped[MaxSize reached]...");
-                    continue;
-                }
-
-                screenRec.write(data, size);
-                log<level::DEBUG>("Host screen Record in progress...");
-                std::this_thread::sleep_for(std::chrono::microseconds(delay));
-            }
-            else
+            if (std::chrono::steady_clock::now() - recStart >= recDuration)
             {
                 videoRecFlag.store(false);
                 log<level::INFO>("recording stopped...");
                 // Log the event of video recording stop
                 ikvm::eventLogSupport("OpenBMC.0.1.KVMAVRStop");
+                break;
             }
+
+            // Take latest frame for this tick; pad with last frame if none
+            // arrived.
+            {
+                std::lock_guard<std::mutex> lk(video->recMutex);
+                if (!video->recFrameQueue.empty())
+                {
+                    lastFrameData = std::move(video->recFrameQueue.back());
+                    video->recFrameQueue.clear();
+                }
+            }
+
+            outputSize += lastFrameData.size();
+
+            if (outputSize > maxSize)
+            {
+                videoRecFlag.store(false);
+                log<level::INFO>("recording stopped[MaxSize reached]...");
+                break;
+            }
+
+            screenRec.write(lastFrameData.data(), lastFrameData.size());
         }
         screenRec.close();
 
@@ -318,6 +353,7 @@ void Video::videoRecord(Video* video)
 
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         recThreadStatus.store(false);
+        video->clearRecQueue();
     }
     catch (const sdbusplus::exception::SdBusError& e)
     {
@@ -328,6 +364,7 @@ void Video::videoRecord(Video* video)
 
         videoRecFlag.store(false);
         recThreadStatus.store(false);
+        video->clearRecQueue();
 
         return;
     }
@@ -339,6 +376,7 @@ void Video::videoRecord(Video* video)
         videoRecFlag.store(false);
         Video::updateRecStat("Stop");
         recThreadStatus.store(false);
+        video->clearRecQueue();
 
         return;
     }

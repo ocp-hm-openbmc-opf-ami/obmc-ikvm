@@ -110,6 +110,15 @@ class Monitor
 
     /*
      *
+     *  @brief D-Bus Signal Monitor for Non-Recoverable Temperature Events.
+     *
+     *  @param[in]conn Pointer to Dbus Connection
+     */
+    sdbusplus::bus::match_t tempSensNonRecovMonitor(
+        const std::shared_ptr<sdbusplus::asio::connection> conn);
+
+    /*
+     *
      *  @brief D-Bus Signal Monitor for Critical Voltage Event.
      *
      *  @param[in]conn Pointer to Dbus Connection
@@ -128,8 +137,17 @@ class Monitor
 
     /*
      *
+     *  @brief D-Bus Signal Monitor for Non-Recoverable Voltage Events.
+     *
+     *  @param[in]conn Pointer to Dbus Connection
+     */
+    sdbusplus::bus::match_t voltSensNonRecovMonitor(
+        const std::shared_ptr<sdbusplus::asio::connection> conn);
+
+    /*
+     *
      *  @brief D-Bus Signal Monitor for Host
-     *  power Opearions.
+     *  power Operations.
      *
      *  @param[in]conn Pointer to Dbus Connection
      */
@@ -155,11 +173,53 @@ class Monitor
     sdbusplus::bus::match_t lpcResetMonitor(
         const std::shared_ptr<sdbusplus::asio::connection> conn);
 
+    /*
+     *
+     *  @brief D-Bus Signal Monitor for Fan noncritical Events.
+     *
+     *  @param[in]conn Pointer to Dbus Connection
+     */
+    sdbusplus::bus::match_t fanSensWarnMonitor(
+        const std::shared_ptr<sdbusplus::asio::connection> conn);
+
+    /*
+     *
+     *  @brief D-Bus Signal Monitor for Fan Critical Events.
+     *
+     *  @param[in]conn Pointer to Dbus Connection
+     */
+    sdbusplus::bus::match_t fanSensCritMonitor(
+        const std::shared_ptr<sdbusplus::asio::connection> conn);
+
+    /*
+     *
+     *  @brief D-Bus Signal Monitor for Fan Removal Events.
+     *
+     *  Guards against false triggers during host power on/off/reset by checking
+     *  CurrentHostState before triggering AVR.
+     *
+     *  @param[in]conn Pointer to Dbus Connection
+     */
+    sdbusplus::bus::match_t fanRemovalMonitor(
+        const std::shared_ptr<sdbusplus::asio::connection> conn);
+
+    /*
+     *
+     *  @brief D-Bus Signal Monitor for Watchdog Timeout.
+     *
+     *  @param[in]conn Pointer to Dbus Connection
+     */
+    sdbusplus::bus::match_t watchdogTimeoutMonitor(
+        const std::shared_ptr<sdbusplus::asio::connection> conn);
+
   private:
     std::vector<sdbusplus::bus::match_t> matchers;
     triggerEvents32 triggerEvents{};
     // Mask for bits 0 to (RESERVED - 1)
     uint32_t reservedMask = (1 << triggerEvent::RESERVED) - 1;
+    // Tracks fan reconnect times to suppress threshold alarms during spin-up
+    std::map<std::string, std::chrono::steady_clock::time_point>
+        fanReconnectTimes;
 };
 
 } // namespace kvmDbus

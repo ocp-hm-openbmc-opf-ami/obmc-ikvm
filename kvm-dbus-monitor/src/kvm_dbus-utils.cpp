@@ -47,10 +47,24 @@ const std::string tempObjPathNamespace =
 const std::string voltSensorService = "xyz.openbmc_project.ADCSensor";
 const std::string voltObjPathNamespace = "/xyz/openbmc_project/sensors/voltage";
 
+const std::string fanSensorService = "xyz.openbmc_project.FanSensor";
+const std::string fanObjPathNamespace = "/xyz/openbmc_project/sensors/fan_tach";
+const std::string fanStatusInterface = "xyz.openbmc_project.Sensor.FanStatus";
+
+const std::string wdogService = "xyz.openbmc_project.Watchdog";
+const std::string wdogObjPath = "/xyz/openbmc_project/watchdog/host0";
+const std::string wdogInterface = "xyz.openbmc_project.Watchdog";
+
+// Duration (in seconds) to suppress fan threshold alarms after a fan
+// reconnect event, to avoid false AVR triggers during fan spin-up.
+const uint32_t fanReconnectSuppressionSecs = 5;
+
 const std::string critInterface =
     "xyz.openbmc_project.Sensor.Threshold.Critical";
 const std::string nonCritInterface =
     "xyz.openbmc_project.Sensor.Threshold.Warning";
+const std::string nonRecovInterface =
+    "xyz.openbmc_project.Sensor.Threshold.NonRecoverable";
 
 const std::string lpcpath = "/xyz/openbmc_project/state/boot/raw0";
 const std::string lpcInterface = "xyz.openbmc_project.State.Boot.Raw";

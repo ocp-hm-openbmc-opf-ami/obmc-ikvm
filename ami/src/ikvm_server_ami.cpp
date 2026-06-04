@@ -159,7 +159,6 @@ void Server::sessionRegister(rfbClientPtr cl)
         uint8_t sessionType = KVM;
         uint8_t privilege = PRIV_LEVEL_ADMIN;
         uint8_t userId = KVM_DEFAULT_USER_ID;
-        std::string mountingMethod = MOUNTING_METHOD;
 
         if (cd->webSessionId != DEFAULT_SID)
         {
@@ -167,7 +166,7 @@ void Server::sessionRegister(rfbClientPtr cl)
             {
                 bool found = false;
                 auto msgFetch = busRegister.new_method_call(
-                    smgrService.c_str(), smgrObjPath.c_str(),
+                    smgrService.c_str(), smgrWEBObjPath.c_str(),
                     DBUS_PROPERTIES_INTERFACE, "Get");
                 msgFetch.append(smgrWebIface.c_str(), "WebSessionInfo");
 
@@ -193,7 +192,6 @@ void Server::sessionRegister(rfbClientPtr cl)
                             sessionType = KVM;
                             privilege = static_cast<uint8_t>(std::get<4>(*it));
                             userId = static_cast<uint8_t>(std::get<5>(*it));
-                            mountingMethod = MOUNTING_METHOD;
                             found = true;
                         }
                         else
@@ -232,7 +230,6 @@ void Server::sessionRegister(rfbClientPtr cl)
                 sessionType = std::get<3>(cd->clientInfo);
                 privilege = std::get<4>(cd->clientInfo);
                 userId = std::get<5>(cd->clientInfo);
-                mountingMethod = MOUNTING_METHOD;
             }
             else
             {
@@ -241,16 +238,15 @@ void Server::sessionRegister(rfbClientPtr cl)
                 sessionType = KVM;
                 privilege = PRIV_LEVEL_ADMIN;
                 userId = KVM_DEFAULT_USER_ID;
-                mountingMethod = MOUNTING_METHOD;
             }
         }
 
         auto m = busRegister.new_method_call(
-            smgrService.c_str(), smgrObjPath.c_str(), smgrIface.c_str(),
-            "SessionRegister");
+            smgrService.c_str(), smgrKVMObjPath.c_str(), smgrKVMIface.c_str(),
+            "KvmSessionRegister");
 
         m.append(cd->sessionId, ipAdress, userName, sessionType, privilege,
-                 userId, mountingMethod);
+                 userId);
 
         auto reply = busRegister.call(m);
         bool status = false;
@@ -259,7 +255,7 @@ void Server::sessionRegister(rfbClientPtr cl)
         if (status)
         {
             auto msg2 = busRegister.new_method_call(
-                smgrService.c_str(), smgrObjPath.c_str(),
+                smgrService.c_str(), smgrKVMObjPath.c_str(),
                 DBUS_PROPERTIES_INTERFACE, "Get");
 
             msg2.append(smgrKVMIface, "KvmSessionInfo");
@@ -383,9 +379,9 @@ void Server::clientCutTextMsgHandler(rfbClientPtr cl, const char* text,
                         std::string mountType = MOUNTING_METHOD;
 
                         // Populate the global tuple
-                        cd->clientInfo = std::make_tuple(
-                            sessionId, ipAddress, userName, sessionType,
-                            privilege, userId, mountType);
+                        cd->clientInfo =
+                            std::make_tuple(sessionId, ipAddress, userName,
+                                            sessionType, privilege, userId);
                     }
                     catch (const std::exception& e)
                     {
@@ -395,8 +391,7 @@ void Server::clientCutTextMsgHandler(rfbClientPtr cl, const char* text,
 
                         cd->clientInfo = std::make_tuple(
                             DEFAULT_SID, DEFAULT_IP, USER_NAME, KVM,
-                            PRIV_LEVEL_ADMIN, KVM_DEFAULT_USER_ID,
-                            MOUNTING_METHOD);
+                            PRIV_LEVEL_ADMIN, KVM_DEFAULT_USER_ID);
                     }
                 }
             }

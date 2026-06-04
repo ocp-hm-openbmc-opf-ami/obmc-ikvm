@@ -53,6 +53,7 @@ void Manager::statusUpdateThread(Manager* manager)
 {
     while (manager->continueExecuting)
     {
+        bool noSignal = false;
         if (manager->server.wantsFrame() || scrnshotFlag.load() ||
             videoRecFlag.load() || InitFlag.load())
         {
@@ -79,7 +80,9 @@ void Manager::statusUpdateThread(Manager* manager)
                 }
             }
 
-            if (manager->video.getSignalStatus() == V4L2_IN_ST_NO_SIGNAL)
+            noSignal =
+                (manager->video.getSignalStatus() == V4L2_IN_ST_NO_SIGNAL);
+            if (noSignal)
             {
                 if (hostPowerState == "Off")
                 {
@@ -120,10 +123,12 @@ void Manager::statusUpdateThread(Manager* manager)
 
             if (manager->server.wantsFrame())
             {
+                manager->video.pushRecFrame();
                 manager->server.sendFrame();
             }
             else
             {
+                manager->video.pushRecFrame();
                 manager->video.releaseFrames();
             }
             if (InitFlag.load())

@@ -3,10 +3,7 @@ project(
     'cpp',
     version: '1.0',
     license: 'GPLv2',
-    default_options: [
-        'cpp_std=c++23',
-        'werror=true',
-    ],
+    default_options: ['cpp_std=c++23', 'werror=true'],
     meson_version: '>=1.1.1',
 )
 
@@ -22,7 +19,7 @@ endif
 install_data(
     'create_usbhid.sh',
     install_mode: 'rwxr-xr-x',
-    install_dir: get_option('bindir')
+    install_dir: get_option('bindir'),
 )
 
 # Includes neccessary subdirectory build
@@ -47,16 +44,14 @@ executable(
         dependency('threads'),
         dependency('boost'),
     ],
-    install: true
+    install: true,
 )
 
 fs = import('fs')
 fs.copyfile(
     'start-ipkvm.service',
     install: true,
-    install_dir:
-        dependency('systemd').get_variable(
-            'systemdsystemunitdir')
+    install_dir: dependency('systemd').get_variable('systemdsystemunitdir'),
 )
 
 # Install dual node service only if dual node is enabled
@@ -64,8 +59,6 @@ if get_option('dual_node').enabled()
     fs.copyfile(
         'start-ipkvm1.service',
         install: true,
-        install_dir:
-            dependency('systemd').get_variable(
-                'systemdsystemunitdir')
+        install_dir: dependency('systemd').get_variable('systemdsystemunitdir'),
     )
 endif

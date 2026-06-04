@@ -171,6 +171,12 @@ void Server::sendFrame()
     {
         ClientData* cd = (ClientData*)cl->clientData;
         rfbFramebufferUpdateMsg* fu = (rfbFramebufferUpdateMsg*)cl->updateBuf;
+
+        if (video.buffersDone.empty())
+        {
+            continue;
+        }
+
         auto i = video.buffersDone.front();
 
         if (!cd)
@@ -428,10 +434,10 @@ void Server::clientGone(rfbClientPtr cl)
             {
                 auto busUnRegister = sdbusplus::bus::new_default_system();
                 auto m = busUnRegister.new_method_call(
-                    smgrService.c_str(), smgrObjPath.c_str(), smgrIface.c_str(),
-                    "SessionUnregister");
+                    smgrService.c_str(), smgrKVMObjPath.c_str(),
+                    smgrKVMIface.c_str(), "KvmSessionUnregister");
                 uint8_t sessionType = KVM;
-                int reason = LOGOUT;
+                uint8_t reason = LOGOUT;
 
                 m.append(cd->sessionId, sessionType, reason);
                 auto reply = busUnRegister.call(m);
