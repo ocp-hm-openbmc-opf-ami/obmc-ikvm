@@ -269,12 +269,12 @@ sdbusplus::bus::match_t Monitor::monitoringKvmStatus(
 
             if (interfaceName == serviceMgrIface)
             {
-                // Check for the Enabled property
-                auto enabledIt = properties.find("Enabled");
-                if (enabledIt != properties.end())
+                // Check for the Running property
+                auto runningIt = properties.find("Running");
+                if (runningIt != properties.end())
                 {
-                    bool enabled = std::get<bool>(enabledIt->second);
-                    if (!enabled)
+                    bool running = std::get<bool>(runningIt->second);
+                    if (!running)
                     {
                         // Update the KVM status
                         isKvmDisabled = true;
