@@ -15,8 +15,6 @@
 #include "ami/include/ikvm_utils.hpp"
 #include "ikvm_input.hpp"
 
-#include <phosphor-logging/elog-errors.hpp>
-#include <phosphor-logging/elog.hpp>
 #include <phosphor-logging/log.hpp>
 #include <xyz/openbmc_project/Common/File/error.hpp>
 
@@ -39,9 +37,6 @@ int Input::readKeyBoardOutReport()
         log<level::ERR>("Failed to open input device",
                         entry("PATH=%s", keyboardPath.c_str()),
                         entry("ERROR=%s", strerror(errno)));
-        elog<Open>(xyz::openbmc_project::Common::File::Open::ERRNO(errno),
-                   xyz::openbmc_project::Common::File::Open::PATH(
-                       keyboardPath.c_str()));
         return -errno;
     }
 

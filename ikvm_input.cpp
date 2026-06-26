@@ -11,8 +11,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include <phosphor-logging/elog-errors.hpp>
-#include <phosphor-logging/elog.hpp>
 #include <phosphor-logging/log.hpp>
 #include <xyz/openbmc_project/Common/File/error.hpp>
 
@@ -171,9 +169,6 @@ void Input::connect()
             log<level::ERR>("Failed to open input device",
                             entry("PATH=%s", keyboardPath.c_str()),
                             entry("ERROR=%s", strerror(errno)));
-            elog<Open>(xyz::openbmc_project::Common::File::Open::ERRNO(errno),
-                       xyz::openbmc_project::Common::File::Open::PATH(
-                           keyboardPath.c_str()));
         }
     }
 
@@ -185,9 +180,6 @@ void Input::connect()
             log<level::ERR>("Failed to open input device",
                             entry("PATH=%s", pointerPath.c_str()),
                             entry("ERROR=%s", strerror(errno)));
-            elog<Open>(xyz::openbmc_project::Common::File::Open::ERRNO(errno),
-                       xyz::openbmc_project::Common::File::Open::PATH(
-                           pointerPath.c_str()));
         }
     }
 }
