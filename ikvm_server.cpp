@@ -280,6 +280,15 @@ void Server::sendFrame()
             cd->last_crc = frame_crc;
         }
 
+        // Avoid sending rectangles larger than the advertised framebuffer size,
+        // which can cause RFB clients to abort with a protocol error.
+        if (server->width != (int)video.getWidth() ||
+            server->height != (int)video.getHeight())
+        {
+            pendingResize = true;
+            continue;
+        }
+
         cd->needUpdate = false;
         frame_sent = true;
 
