@@ -42,8 +42,10 @@ Input::Input(const std::string& kbdPath, const std::string& ptrPath,
     hidUdcPath = OBMC_HID_PATH_node0;
 #endif
 
+#ifndef TEST
     hidUdcStream.exceptions(std::ofstream::failbit | std::ofstream::badbit);
     hidUdcStream.open(hidUdcPath, std::ios::out | std::ios::app);
+#endif
 }
 
 Input::~Input()
@@ -58,8 +60,10 @@ Input::~Input()
         close(pointerFd);
     }
 
+#ifndef TEST
     disconnect();
     hidUdcStream.close();
+#endif
 }
 
 void Input::connect()
@@ -337,6 +341,15 @@ void Input::pointerEvent(int buttonMask, int x, int y, rfbClientPtr cl)
     /* Update the last activity time for session timeout */
     cd->lastActivityTime = std::chrono::steady_clock::now();
     Input* input = cd->input;
+
+#ifdef TEST
+    /* In test mode pointerFd is always -1; skip live server/screen access */
+    if (input->pointerFd < 0)
+    {
+        return;
+    }
+#endif
+
     Server* server = (Server*)cl->screen->screenData;
     const Video& video = server->getVideo();
 

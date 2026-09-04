@@ -68,9 +68,11 @@ Server::Server(const Args& args, Input& i, Video& v) :
         server->port = 5901;
     }
 
+#ifndef TEST
     rfbInitServer(server);
 
     rfbMarkRectAsModified(server, 0, 0, video.getWidth(), video.getHeight());
+#endif
 
     server->kbdAddEvent = Input::keyEvent;
     server->ptrAddEvent = Input::pointerEvent;
@@ -83,7 +85,9 @@ Server::Server(const Args& args, Input& i, Video& v) :
 
 Server::~Server()
 {
+#ifndef TEST
     rfbScreenCleanup(server);
+#endif
 }
 
 void Server::resize()
@@ -100,7 +104,9 @@ void Server::resize()
 
 void Server::run()
 {
+#ifndef TEST
     rfbProcessEvents(server, processTime);
+#endif
 
     rfbClientPtr cl = server->clientHead;
     while (cl)

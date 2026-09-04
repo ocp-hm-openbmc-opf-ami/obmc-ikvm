@@ -121,6 +121,35 @@ class Server
         return video;
     }
 
+#ifdef TEST
+    rfbScreenInfoPtr getScreenInfoPtr() const
+    {
+        return server;
+    }
+    void setTestFrameCounter(int fc)
+    {
+        frameCounter = fc;
+    }
+    static std::vector<unsigned char> testCreateIVTPStopSessionPacket(
+        unsigned short stopReason, unsigned short status)
+    {
+        return createIVTPStopSessionPacket(stopReason, status);
+    }
+    static IVTPMessage testParseIvtpBuffer(const char* buffer,
+                                           uint32_t totalLength)
+    {
+        return parseIvtpBuffer(buffer, totalLength);
+    }
+    static void testHandleKVMServiceDisabled(rfbScreenInfoPtr rfbScreen)
+    {
+        handleKVMServiceDisabled(rfbScreen);
+    }
+    static void testSessionRegister(rfbClientPtr cl)
+    {
+        sessionRegister(cl);
+    }
+#endif
+
   private:
     /*
      * @brief Handler for a client frame update message

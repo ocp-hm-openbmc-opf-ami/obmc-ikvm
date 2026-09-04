@@ -210,6 +210,28 @@ class Video
     static const int samplesPerPixel;
     /* @brief done buffer storage */
     std::deque<int> buffersDone;
+
+#ifdef TEST
+    void setTestFd(int f)
+    {
+        fd = f;
+    }
+    void resizeTestBuffers(size_t n)
+    {
+        buffers.resize(n);
+    }
+    void setResizeAfterOpen(bool val)
+    {
+        resizeAfterOpen = val;
+    }
+    void setTestBufferData(unsigned int i, void* data, size_t size,
+                           uint32_t sequence)
+    {
+        buffers[i].data = data;
+        buffers[i].size = size;
+        buffers[i].sequence = sequence;
+    }
+#endif
     /*
      * =============================================
      * <<<<<<<<<<<<< AMI Extensions >>>>>>>>>>>>>>>>

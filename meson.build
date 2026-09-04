@@ -22,6 +22,41 @@ install_data(
     install_dir: get_option('bindir'),
 )
 
+if get_option('tests').enabled()
+    add_project_arguments(
+    '-Wno-error',
+    '-Wno-pedantic',
+    '-Wno-parentheses',
+    language: 'cpp'
+    )
+    
+    cmake = import('cmake')
+    message('Building libvncserver as CMake subproject')
+
+    libvnc_opts = cmake.subproject_options()
+    libvnc_opts.add_cmake_defines({
+        'BUILD_TESTS'                  : 'OFF',
+        'BUILD_SHARED_LIBS'            : 'ON',
+        'WITH_LZO'                     : 'OFF',
+        'WITH_JPEG'                    : 'ON',
+        'CMAKE_POLICY_VERSION_MINIMUM' : '3.5',
+        'CMAKE_C_FLAGS'                : '-Wno-error -Wno-pedantic',
+      })
+
+    libvnc_proj = cmake.subproject(
+        'libvncserver',
+        options : libvnc_opts
+    )
+
+    libvnc_opts.set_override_option('cmake_dev_warnings', 'OFF')
+    message('CMake targets:\n - ' + '\n - '.join(libvnc_proj.target_list()))
+    libvncserver_dep = libvnc_proj.dependency('vncserver')
+else
+    libvncserver_dep = dependency('libvncserver')
+endif
+
+phosphor_dbus_interfaces_dep = dependency('phosphor-dbus-interfaces')
+
 # Includes neccessary subdirectory build
 subdir('ami')
 
@@ -37,9 +72,9 @@ executable(
         ami_sources,
     ],
     dependencies: [
-        dependency('libvncserver'),
+        libvncserver_dep,
         dependency('phosphor-logging'),
-        dependency('phosphor-dbus-interfaces'),
+        phosphor_dbus_interfaces_dep,
         dependency('sdbusplus'),
         dependency('threads'),
         dependency('boost'),
@@ -61,4 +96,8 @@ if get_option('dual_node').enabled()
         install: true,
         install_dir: dependency('systemd').get_variable('systemdsystemunitdir'),
     )
+endif
+
+if get_option('tests').enabled()
+    subdir('tests')
 endif

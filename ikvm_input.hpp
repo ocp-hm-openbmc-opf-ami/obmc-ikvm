@@ -84,6 +84,29 @@ class Input
     /* @brief getter method for keyboardLedState (AMI Extension) */
     int getkeyboardLedState();
 
+#ifdef TEST
+    void setTestKeyboardFd(int fd)
+    {
+        keyboardFd = fd;
+    }
+    void setTestPointerFd(int fd)
+    {
+        pointerFd = fd;
+    }
+    static uint8_t testKeyToScancode(rfbKeySym key)
+    {
+        return keyToScancode(key);
+    }
+    bool testWriteKeyboard(const uint8_t* report)
+    {
+        return writeKeyboard(report);
+    }
+    void testWritePointer(const uint8_t* report)
+    {
+        writePointer(report);
+    }
+#endif
+
   private:
     static constexpr int NUM_MODIFIER_BITS = 4;
     static constexpr int KEY_REPORT_LENGTH = 8;
