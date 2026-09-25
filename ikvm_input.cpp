@@ -16,6 +16,10 @@
 
 namespace fs = std::filesystem;
 
+#ifdef IKVM_UT_OVERRIDE_VHUB_ROOT
+static constexpr const char* testVirtualHubRoot = IKVM_UT_OVERRIDE_VHUB_ROOT;
+#endif
+
 namespace ikvm
 {
 using namespace phosphor::logging;
@@ -75,6 +79,9 @@ void Input::connect()
             bool found = false;
             std::string detectedHubPath;
 
+#ifdef IKVM_UT_OVERRIDE_VHUB_ROOT
+            detectedHubPath = testVirtualHubRoot;
+#else
 #ifdef MULTI_HOST_DEFAULT_MODE
             // Determine hub path based on which node this is (obmc_hid vs
             // obmc_hid1)
@@ -115,6 +122,7 @@ void Input::connect()
                     detectedHubPath = usbVirtualHubPath;
                 }
             }
+#endif
 
             for (const auto& port : fs::directory_iterator(detectedHubPath))
             {

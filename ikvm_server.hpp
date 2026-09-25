@@ -95,6 +95,14 @@ class Server
     Server(Server&&) = default;
     Server& operator=(Server&&) = default;
 
+#ifdef TEST
+    Server(Input& testInput, Video& testVideo) :
+        kvmFullPrivSession(false), pendingResize(false), frameCounter(0),
+        numClients(0), processTime(0), server(nullptr), input(testInput),
+        video(testVideo), calcFrameCRC(false)
+    {}
+#endif
+
     /* @brief Resizes the RFB framebuffer */
     void resize();
     /* @brief Executes any pending RFB updates and client input */

@@ -36,6 +36,15 @@ class Video
     Video(Video&&) = default;
     Video& operator=(Video&&) = default;
 
+#ifdef TEST
+    Video(Input& inputRef, int testWidth, int testHeight, int fr = 30) :
+        isNewClient(false), resizeAfterOpen(false), timingsError(false), fd(-1),
+        frameRate(fr), lastFrameIndex(-1), height(testHeight), width(testWidth),
+        subSampling(0), quality(4), input(inputRef), format(0),
+        originalFormat(0), path(""), pixelformat(V4L2_PIX_FMT_JPEG)
+    {}
+#endif
+
     /*
      * @brief Gets the video frame data
      *

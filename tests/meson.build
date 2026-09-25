@@ -32,6 +32,7 @@ common_deps = [
     phosphor_logging_dep,
     dependency('sdbusplus'),
     dependency('threads'),
+    dependency('boost'),
 ]
 
 common_link_args = [
@@ -116,10 +117,11 @@ test_input_exe = executable(
     [
         'test_main.cpp',
         'test_input.cpp',
+        'mocks/sys_write_mocks.cpp',
     ] + input_sources,
     include_directories: include_directories('..'),
     dependencies: common_deps,
-    link_args: common_link_args,
+    link_args: common_link_args + ['-Wl,--wrap=write'],
     cpp_args: common_cpp_args,
 )
 test('test_input', test_input_exe)
@@ -149,3 +151,97 @@ test_video_exe = executable(
     cpp_args: common_cpp_args,
 )
 test('test_video', test_video_exe)
+
+video_extended_wrap_args = [
+    '-Wl,--wrap=open',
+    '-Wl,--wrap=ioctl',
+    '-Wl,--wrap=mmap',
+    '-Wl,--wrap=munmap',
+    '-Wl,--wrap=select',
+    '-Wl,--wrap=fcntl',
+    '-Wl,--wrap=close',
+    '-Wl,--wrap=__open64',
+    '-Wl,--wrap=open64',
+    '-Wl,--wrap=__ioctl',
+    '-Wl,--wrap=__ioctl_time64',
+    '-Wl,--wrap=mmap64',
+    '-Wl,--wrap=__munmap',
+    '-Wl,--wrap=__select',
+    '-Wl,--wrap=__select64',
+    '-Wl,--wrap=fcntl64',
+    '-Wl,--wrap=__fcntl64',
+    '-Wl,--wrap=__fcntl_time64',
+    '-Wl,--wrap=__close',
+    '-Wl,--wrap=_ZN4ikvm5isDirERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE',
+    '-Wl,--wrap=_ZN4ikvm15eventLogSupportERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE',
+]
+
+test_video_extended_exe = executable(
+    'test_video_extended',
+    [
+        'test_main.cpp',
+        'test_video_extended.cpp',
+        'fake_v4l2.cpp',
+        'v4l2_wrappers.cpp',
+        'video_alg.cpp',
+    ] + video_sources,
+    include_directories: include_directories('..'),
+    dependencies: common_deps,
+    link_args: common_link_args + video_extended_wrap_args + ['-fno-lto'],
+    cpp_args: common_cpp_args +
+        ['-D_GNU_SOURCE', '-fPIC', '-fno-lto'],
+)
+test('test_video_extended', test_video_extended_exe)
+
+test_server_extended_exe = executable(
+    'test_server_extended',
+    [
+        'test_main.cpp',
+        'test_server_extended.cpp',
+        'fake_v4l2.cpp',
+        'v4l2_wrappers.cpp',
+    ] + server_sources,
+    include_directories: include_directories('..'),
+    dependencies: common_deps,
+    link_args: common_link_args + video_extended_wrap_args + ['-fno-lto'],
+    cpp_args: common_cpp_args +
+        ['-D_GNU_SOURCE', '-DLIBVNCSERVER_HAVE_LIBJPEG',
+         '-fPIC', '-fno-lto'],
+)
+test('test_server_extended', test_server_extended_exe)
+
+test_scancodes_exe = executable(
+    'test_scancodes',
+    [
+        'test_main.cpp',
+        'test_scancodes.cpp',
+    ] + input_sources,
+    include_directories: include_directories('..'),
+    dependencies: common_deps,
+    link_args: common_link_args,
+    cpp_args: common_cpp_args,
+)
+test('test_scancodes', test_scancodes_exe)
+
+manager_mock_inc = include_directories('mocks/include')
+
+test_manager_exe = executable(
+    'test_manager',
+    [
+        'test_main.cpp',
+        'test_manager.cpp',
+        'mocks/src/ikvm_args_fake.cpp',
+        'mocks/src/ikvm_utils_globals.cpp',
+        '../ikvm_manager.cpp',
+    ],
+    implicit_include_directories: false,
+    include_directories: [manager_mock_inc, include_directories('..')],
+    dependencies: [
+        gtest_dep,
+        gmock_dep,
+        phosphor_logging_dep,
+        dependency('threads'),
+    ],
+    cpp_args: common_cpp_args,
+)
+test('test_manager', test_manager_exe)

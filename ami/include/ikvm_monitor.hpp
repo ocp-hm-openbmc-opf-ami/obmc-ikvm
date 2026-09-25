@@ -118,6 +118,13 @@ class Monitor
     void initialize(
         const std::shared_ptr<sdbusplus::asio::connection>& connection);
 
+#ifdef TEST
+    std::size_t testMatcherCount() const
+    {
+        return matchers.size();
+    }
+#endif
+
   private:
     /* @brief matcher(dbus signal monitors) storage */
     std::vector<sdbusplus::bus::match_t> matchers;

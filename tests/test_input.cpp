@@ -17,11 +17,14 @@
 #include <rfb/rfb.h>
 #include <unistd.h>
 
+#include <atomic>
 #include <cstring>
 #include <utility>
 #include <vector>
 
 #include <gtest/gtest.h>
+
+extern std::atomic<bool> mockWriteShutdownOnce;
 
 namespace ikvm
 {
@@ -654,6 +657,36 @@ TEST(InputWritePointerTest, InvalidFd_NoThrow)
 
     uint8_t report[6] = {0};
     EXPECT_NO_THROW(inp.testWritePointer(report));
+}
+
+TEST(InputWriteKeyboardTest, TestWriteKeyboard_ShutdownWriteError_ReturnsFalse)
+{
+    Input input{"", "", ""};
+    int devnull = open("/dev/null", O_RDWR);
+    ASSERT_GE(devnull, 0);
+    input.setTestKeyboardFd(devnull);
+
+    uint8_t report[8] = {0};
+    mockWriteShutdownOnce.store(true);
+    EXPECT_FALSE(input.testWriteKeyboard(report));
+
+    input.setTestKeyboardFd(-1);
+    close(devnull);
+}
+
+TEST(InputWritePointerTest, TestWritePointer_ShutdownWriteError_DoesNotThrow)
+{
+    Input input{"", "", ""};
+    int devnull = open("/dev/null", O_RDWR);
+    ASSERT_GE(devnull, 0);
+    input.setTestPointerFd(devnull);
+
+    uint8_t report[6] = {0};
+    mockWriteShutdownOnce.store(true);
+    EXPECT_NO_THROW(input.testWritePointer(report));
+
+    input.setTestPointerFd(-1);
+    close(devnull);
 }
 
 } // namespace ikvm

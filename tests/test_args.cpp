@@ -170,15 +170,34 @@ TEST_F(FrameRateTest, InvalidFrameRate_Above60_ClampedTo30)
     EXPECT_EQ(args.getFrameRate(), 30);
 }
 
-TEST_F(FrameRateTest, InvalidFrameRate_Zero_ClampedTo30)
+TEST_F(FrameRateTest, GetFrameRate_ZeroValue_IsStored)
 {
     std::vector<const char*> raw = {"obmc-ikvm", "-f", "0"};
     auto argv = makeArgv(raw);
     optind = 1;
     Args args(static_cast<int>(raw.size()), argv.data());
 
-    // 0 is < 0 is false, 0 > 60 is false, so 0 is a valid value per the code
     EXPECT_EQ(args.getFrameRate(), 0);
+}
+
+TEST_F(FrameRateTest,
+       ParseFrameRate_ShortClusterWithCalcCrc_StoresFrameRateAndEnablesCrc)
+{
+    std::vector<const char*> raw = {"obmc-ikvm", "-cf", "50"};
+    auto argv = makeArgv(raw);
+    Args args(static_cast<int>(raw.size()), argv.data());
+
+    EXPECT_TRUE(args.getCalcFrameCRC());
+    EXPECT_EQ(args.getFrameRate(), 50);
+}
+
+TEST_F(FrameRateTest, ParseFrameRate_RepeatedFlags_UsesLastValue)
+{
+    std::vector<const char*> raw = {"obmc-ikvm", "-f", "15", "-f", "55"};
+    auto argv = makeArgv(raw);
+    Args args(static_cast<int>(raw.size()), argv.data());
+
+    EXPECT_EQ(args.getFrameRate(), 55);
 }
 
 // ---------------------------------------------------------------------------
@@ -228,6 +247,24 @@ TEST_F(SubsamplingTest, Subsampling_Negative_ClampedTo0)
     std::vector<const char*> raw = {"obmc-ikvm", "-s", "-1"};
     auto argv = makeArgv(raw);
     optind = 1;
+    Args args(static_cast<int>(raw.size()), argv.data());
+
+    EXPECT_EQ(args.getSubsampling(), 0);
+}
+
+TEST_F(SubsamplingTest, ParseSubsampling_LongEqualsForm_StoresValue)
+{
+    std::vector<const char*> raw = {"obmc-ikvm", "--subsampling=1"};
+    auto argv = makeArgv(raw);
+    Args args(static_cast<int>(raw.size()), argv.data());
+
+    EXPECT_EQ(args.getSubsampling(), 1);
+}
+
+TEST_F(SubsamplingTest, ParseSubsampling_RepeatedFlags_ValidatesLastValue)
+{
+    std::vector<const char*> raw = {"obmc-ikvm", "-s", "1", "-s", "2"};
+    auto argv = makeArgv(raw);
     Args args(static_cast<int>(raw.size()), argv.data());
 
     EXPECT_EQ(args.getSubsampling(), 0);
@@ -287,6 +324,30 @@ TEST_F(FormatTest, Format_Invalid_3_ClampedTo0)
     EXPECT_EQ(args.getFormat(), 0);
 }
 
+TEST_F(FormatTest, ParseFormat_ConcatenatedShortOption_StoresValue)
+{
+    std::vector<const char*> raw = {"obmc-ikvm", "-m2"};
+    auto argv = makeArgv(raw);
+    Args args(static_cast<int>(raw.size()), argv.data());
+
+    std::vector<const char*> canonicalRaw = {"obmc-ikvm", "-m", "2"};
+    auto canonicalArgv = makeArgv(canonicalRaw);
+    optind = 1;
+    Args canonicalArgs(static_cast<int>(canonicalRaw.size()),
+                       canonicalArgv.data());
+
+    EXPECT_EQ(args.getFormat(), canonicalArgs.getFormat());
+}
+
+TEST_F(FormatTest, ParseFormat_RepeatedFlags_ValidatesLastValue)
+{
+    std::vector<const char*> raw = {"obmc-ikvm", "-m", "2", "-m", "1"};
+    auto argv = makeArgv(raw);
+    Args args(static_cast<int>(raw.size()), argv.data());
+
+    EXPECT_EQ(args.getFormat(), 0);
+}
+
 // ---------------------------------------------------------------------------
 // PathTest — -k, -p, -u, -v flags
 // ---------------------------------------------------------------------------
@@ -339,6 +400,70 @@ TEST_F(PathTest, VideoDevicePath_IsStored)
     EXPECT_EQ(args.getVideoPath(), "/dev/video0");
 }
 
+TEST_F(PathTest, ParsePaths_LongOptionsWithEquals_StoresPaths)
+{
+    std::vector<const char*> raw = {
+        "obmc-ikvm", "--videoDevice=/dev/video2", "--keyboard=/dev/hidg4",
+        "--mouse=/dev/hidg5", "--udcName=1e6a0000.usb-vhub:p7"};
+    auto argv = makeArgv(raw);
+    Args args(static_cast<int>(raw.size()), argv.data());
+
+    EXPECT_EQ(args.getVideoPath(), "/dev/video2");
+    EXPECT_EQ(args.getKeyboardPath(), "/dev/hidg4");
+    EXPECT_EQ(args.getPointerPath(), "/dev/hidg5");
+    EXPECT_EQ(args.getUdcName(), "1e6a0000.usb-vhub:p7");
+}
+
+TEST_F(PathTest, ParsePaths_EmptyValues_StoresEmptyStrings)
+{
+    std::vector<const char*> raw = {
+        "obmc-ikvm", "--videoDevice", "", "--keyboard", "", "--mouse",
+        "",          "--udcName",     ""};
+    auto argv = makeArgv(raw);
+    Args args(static_cast<int>(raw.size()), argv.data());
+
+    EXPECT_TRUE(args.getVideoPath().empty());
+    EXPECT_TRUE(args.getKeyboardPath().empty());
+    EXPECT_TRUE(args.getPointerPath().empty());
+    EXPECT_TRUE(args.getUdcName().empty());
+}
+
+TEST_F(PathTest, ParsePaths_ValuesWithSpaces_StoreVerbatim)
+{
+    std::vector<const char*> raw = {
+        "obmc-ikvm",
+        "--videoDevice",
+        "/dev/video path/",
+        "--keyboard",
+        "/dev/hidg with space/",
+        "--mouse",
+        "/dev/hidg space/",
+        "--udcName",
+        "1e6a0000.usb-vhub: p9/"};
+    auto argv = makeArgv(raw);
+    Args args(static_cast<int>(raw.size()), argv.data());
+
+    EXPECT_EQ(args.getVideoPath(), "/dev/video path/");
+    EXPECT_EQ(args.getKeyboardPath(), "/dev/hidg with space/");
+    EXPECT_EQ(args.getPointerPath(), "/dev/hidg space/");
+    EXPECT_EQ(args.getUdcName(), "1e6a0000.usb-vhub: p9/");
+}
+
+TEST_F(PathTest, ParsePaths_RepeatedFlags_UseLastValue)
+{
+    std::vector<const char*> raw = {
+        "obmc-ikvm",  "-v", "/dev/videoA", "-v", "/dev/videoB", "-k",
+        "/dev/hidgX", "-k", "/dev/hidgY",  "-p", "/dev/hidgM",  "-p",
+        "/dev/hidgN", "-u", "p3",          "-u", "p4"};
+    auto argv = makeArgv(raw);
+    Args args(static_cast<int>(raw.size()), argv.data());
+
+    EXPECT_EQ(args.getVideoPath(), "/dev/videoB");
+    EXPECT_EQ(args.getKeyboardPath(), "/dev/hidgY");
+    EXPECT_EQ(args.getPointerPath(), "/dev/hidgN");
+    EXPECT_EQ(args.getUdcName(), "p4");
+}
+
 // ---------------------------------------------------------------------------
 // CalcCRCTest — -c flag
 // ---------------------------------------------------------------------------
@@ -359,6 +484,36 @@ TEST(CalcCRCTest, CalcCRC_FlagAbsent_IsFalse)
     std::vector<const char*> raw = {"obmc-ikvm"};
     auto argv = makeArgv(raw);
     optind = 1;
+    Args args(static_cast<int>(raw.size()), argv.data());
+
+    EXPECT_FALSE(args.getCalcFrameCRC());
+}
+
+TEST(CalcCRCTest, GetCalcFrameCRC_LongFlag_ReturnsTrue)
+{
+    optind = 1;
+    std::vector<const char*> raw = {"obmc-ikvm", "--calcCRC"};
+    auto argv = makeArgv(raw);
+    Args args(static_cast<int>(raw.size()), argv.data());
+
+    EXPECT_TRUE(args.getCalcFrameCRC());
+}
+
+TEST(CalcCRCTest, GetCalcFrameCRC_RepeatedFlags_ReturnsTrue)
+{
+    optind = 1;
+    std::vector<const char*> raw = {"obmc-ikvm", "-c", "--calcCRC", "-c"};
+    auto argv = makeArgv(raw);
+    Args args(static_cast<int>(raw.size()), argv.data());
+
+    EXPECT_TRUE(args.getCalcFrameCRC());
+}
+
+TEST(CalcCRCTest, GetCalcFrameCRC_BareToken_ReturnsFalse)
+{
+    optind = 1;
+    std::vector<const char*> raw = {"obmc-ikvm", "calcCRC"};
+    auto argv = makeArgv(raw);
     Args args(static_cast<int>(raw.size()), argv.data());
 
     EXPECT_FALSE(args.getCalcFrameCRC());

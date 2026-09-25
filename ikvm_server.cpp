@@ -447,18 +447,9 @@ void Server::clientGone(rfbClientPtr cl)
         {
             if (cd->sessionId == id)
             {
-                auto busUnRegister = sdbusplus::bus::new_default_system();
-                auto m = busUnRegister.new_method_call(
-                    smgrService.c_str(), smgrKVMObjPath.c_str(),
-                    smgrKVMIface.c_str(), "KvmSessionUnregister");
                 uint8_t sessionType = KVM;
                 uint8_t reason = LOGOUT;
-
-                m.append(cd->sessionId, sessionType, reason);
-                auto reply = busUnRegister.call(m);
-                bool status = false;
-
-                reply.read(status);
+                unregisterSessionDbus(cd->sessionId, sessionType, reason);
             }
         }
     }

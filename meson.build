@@ -100,4 +100,6 @@ endif
 
 if get_option('tests').enabled()
     subdir('tests')
+    subdir('ami/tests')
+    subdir('kvm-dbus-monitor/tests')
 endif

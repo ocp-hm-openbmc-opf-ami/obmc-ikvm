@@ -1,11 +1,20 @@
 #pragma once
 
+#include "ikvm_args.hpp"
+
+#ifdef TEST
+#include <ami/include/ikvm_monitor.hpp>
+#include <ami/include/ikvm_utils.hpp>
+#include <ikvm_input.hpp>
+#include <ikvm_server.hpp>
+#include <ikvm_video.hpp>
+#else
 #include "ami/include/ikvm_monitor.hpp"
 #include "ami/include/ikvm_utils.hpp"
-#include "ikvm_args.hpp"
 #include "ikvm_input.hpp"
 #include "ikvm_server.hpp"
 #include "ikvm_video.hpp"
+#endif
 
 #include <boost/asio.hpp>
 
@@ -39,6 +48,65 @@ class Manager
 
     /* @brief asynchronous external input*/
     boost::asio::io_context io;
+
+#ifdef TEST
+    void testSetContinueExecuting(bool value)
+    {
+        continueExecuting = value;
+    }
+    bool testGetContinueExecuting() const
+    {
+        return continueExecuting;
+    }
+    void testSetServerDoneFlag(bool value)
+    {
+        serverDone = value;
+    }
+    bool testGetServerDoneFlag() const
+    {
+        return serverDone;
+    }
+    void testSetVideoDoneFlag(bool value)
+    {
+        videoDone = value;
+    }
+    bool testGetVideoDoneFlag() const
+    {
+        return videoDone;
+    }
+    Server& testServerRef()
+    {
+        return server;
+    }
+    Video& testVideoRef()
+    {
+        return video;
+    }
+    static void testCallServerThread(Manager* manager)
+    {
+        serverThread(manager);
+    }
+    static void testCallStatusUpdateThread(Manager* manager)
+    {
+        statusUpdateThread(manager);
+    }
+    void testWaitServer()
+    {
+        waitServer();
+    }
+    void testWaitVideo()
+    {
+        waitVideo();
+    }
+    void testSetServerDone()
+    {
+        setServerDone();
+    }
+    void testSetVideoDone()
+    {
+        setVideoDone();
+    }
+#endif
 
   private:
     /*

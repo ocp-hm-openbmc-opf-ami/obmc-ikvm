@@ -10,12 +10,209 @@
 #include <filesystem>
 #include <map>
 #include <string>
+#include <vector>
 
 #include <gtest/gtest.h>
 
 namespace ikvm
 {
 namespace fs = std::filesystem;
+
+#ifdef TEST
+class UtilsHookTest : public ::testing::Test
+{
+  protected:
+    void SetUp() override
+    {
+        savedHostPowerState = hostPowerState;
+        savedTimeoutValue = timeoutValue;
+        savedMaxDumps = maxDumps;
+        savedMaxDuration = maxDuration;
+        savedMaxSize = maxSize;
+        savedServerIp = serverIP;
+        savedPathInServer = pathInServer;
+        savedShareType = shareType;
+        savedRecordToRemote = recordToRemote;
+        savedActive = active;
+    }
+
+    void TearDown() override
+    {
+        hostPowerState = savedHostPowerState;
+        timeoutValue = savedTimeoutValue;
+        maxDumps = savedMaxDumps;
+        maxDuration = savedMaxDuration;
+        maxSize = savedMaxSize;
+        serverIP = savedServerIp;
+        pathInServer = savedPathInServer;
+        shareType = savedShareType;
+        recordToRemote = savedRecordToRemote;
+        active = savedActive;
+        testPowerSaveModeHook = {};
+        testSessionManagerPropertyHook = {};
+        testSessionRegisterHook = {};
+        testSessionUnregisterHook = {};
+        testPowerStateQueryHook = {};
+        testSessionTimeoutQueryHook = {};
+        testRemoteConfigQueryHook = {};
+        testEventLogHook = {};
+    }
+
+  private:
+    std::string savedHostPowerState;
+    std::chrono::duration<uint64_t> savedTimeoutValue{};
+    uint8_t savedMaxDumps = 0;
+    uint8_t savedMaxDuration = 0;
+    uint8_t savedMaxSize = 0;
+    std::string savedServerIp;
+    std::string savedPathInServer;
+    std::string savedShareType;
+    bool savedRecordToRemote = false;
+    bool savedActive = false;
+};
+
+TEST_F(UtilsHookTest, SetUSBPowerSaveModeDbus_StatusProvided_ForwardsStatus)
+{
+    int capturedStatus = -1;
+    testPowerSaveModeHook = [&capturedStatus](int status) {
+        capturedStatus = status;
+    };
+
+    setUSBPowerSaveModeDbus(7);
+
+    EXPECT_EQ(capturedStatus, 7);
+}
+
+TEST_F(UtilsHookTest,
+       GetSessionManagerProperty_NamesProvided_ForwardsNamesAndReturnsValue)
+{
+    const sessionRet expected = {
+        std::make_tuple(static_cast<uint8_t>(9), std::string("198.51.100.10"),
+                        std::string("tester"), static_cast<uint8_t>(0),
+                        static_cast<uint8_t>(4), static_cast<uint8_t>(8))};
+    std::string capturedInterface;
+    std::string capturedProperty;
+    testSessionManagerPropertyHook =
+        [&](const std::string& interfaceName,
+            const std::string& propertyName) -> propertyValue {
+        capturedInterface = interfaceName;
+        capturedProperty = propertyName;
+        return expected;
+    };
+
+    const auto actual =
+        getSessionManagerProperty("xyz.test.Interface", "KvmSessionInfo");
+
+    EXPECT_EQ(capturedInterface, "xyz.test.Interface");
+    EXPECT_EQ(capturedProperty, "KvmSessionInfo");
+    EXPECT_EQ(std::get<sessionRet>(actual), expected);
+}
+
+TEST_F(UtilsHookTest,
+       RegisterSessionDbus_SessionProvided_ForwardsCurrentApiArguments)
+{
+    sessionInfo captured{};
+    testSessionRegisterHook =
+        [&captured](uint8_t sessionId, const std::string& ipAddress,
+                    const std::string& userName, uint8_t sessionType,
+                    uint8_t privilege, uint8_t userId) {
+            captured = std::make_tuple(sessionId, ipAddress, userName,
+                                       sessionType, privilege, userId);
+            return true;
+        };
+
+    EXPECT_TRUE(registerSessionDbus(17, "198.51.100.8", "alice", 3, 5, 9));
+    EXPECT_EQ(captured,
+              std::make_tuple(static_cast<uint8_t>(17),
+                              std::string("198.51.100.8"), std::string("alice"),
+                              static_cast<uint8_t>(3), static_cast<uint8_t>(5),
+                              static_cast<uint8_t>(9)));
+}
+
+TEST_F(UtilsHookTest,
+       UnregisterSessionDbus_IdentifiersProvided_ForwardsCurrentApiArguments)
+{
+    uint8_t capturedSessionId = 0;
+    uint8_t capturedSessionType = 0;
+    uint8_t capturedReason = 0;
+    testSessionUnregisterHook =
+        [&](uint8_t sessionId, uint8_t sessionType, uint8_t reason) {
+            capturedSessionId = sessionId;
+            capturedSessionType = sessionType;
+            capturedReason = reason;
+            return false;
+        };
+
+    EXPECT_FALSE(unregisterSessionDbus(22, 4, 3));
+    EXPECT_EQ(capturedSessionId, 22);
+    EXPECT_EQ(capturedSessionType, 4);
+    EXPECT_EQ(capturedReason, 3);
+}
+
+TEST_F(UtilsHookTest, PowerStatusInit_HookReturnsStateValues_MapsExpectedStates)
+{
+    testPowerStateQueryHook = [] { return std::string("State.On"); };
+    powerStatusInit();
+    EXPECT_EQ(hostPowerState, "On");
+
+    testPowerStateQueryHook = [] { return std::string("State.Pending"); };
+    powerStatusInit();
+    EXPECT_EQ(hostPowerState, "Unknown");
+}
+
+TEST_F(UtilsHookTest, SessionTimeout_HookReturnsSeconds_StoresTimeoutValue)
+{
+    testSessionTimeoutQueryHook = [] { return uint64_t{42}; };
+
+    sessionTimeout();
+
+    EXPECT_EQ(timeoutValue, std::chrono::seconds(42));
+}
+
+TEST_F(UtilsHookTest,
+       GetRemoteConf_TypedPropertiesProvided_AppliesRemoteConfiguration)
+{
+    testRemoteConfigQueryHook = [] {
+        return RemoteConfigProperties{
+            {"Active", true},
+            {"MaxDumps", static_cast<uint8_t>(6)},
+            {"MaxDuration", static_cast<uint8_t>(7)},
+            {"MaxSize", static_cast<uint8_t>(8)},
+            {"PathInServer", std::string("/srv/kvm")},
+            {"RecordToRemote", true},
+            {"ServerIP", std::string("203.0.113.20")},
+            {"ShareType", std::string("cifs")},
+        };
+    };
+
+    getRemoteConf();
+
+    EXPECT_TRUE(active);
+    EXPECT_EQ(maxDumps, 6);
+    EXPECT_EQ(maxDuration, 7);
+    EXPECT_EQ(maxSize, 8);
+    EXPECT_EQ(pathInServer, "/srv/kvm");
+    EXPECT_TRUE(recordToRemote);
+    EXPECT_EQ(serverIP, "203.0.113.20");
+    EXPECT_EQ(shareType, "cifs");
+}
+
+TEST_F(UtilsHookTest,
+       EventLogSupport_MessageProvided_ForwardsMessageAndSwallowsException)
+{
+    std::string capturedMessage;
+    testEventLogHook = [&capturedMessage](const std::string& message) {
+        capturedMessage = message;
+    };
+    eventLogSupport("OpenBMC.0.1.TestEvent");
+    EXPECT_EQ(capturedMessage, "OpenBMC.0.1.TestEvent");
+
+    testEventLogHook = [](const std::string&) {
+        throw std::runtime_error("event hook failed");
+    };
+    EXPECT_NO_THROW(eventLogSupport("OpenBMC.0.1.TestEvent"));
+}
+#endif
 
 // ---------------------------------------------------------------------------
 // TrimTest — pure string whitespace trimming

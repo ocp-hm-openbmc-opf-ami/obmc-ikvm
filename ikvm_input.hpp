@@ -55,6 +55,14 @@ class Input
     Input(Input&&) = default;
     Input& operator=(Input&&) = default;
 
+#ifdef TEST
+    Input() :
+        keyboardFd(-1), pointerFd(-1), keyboardReport{0}, pointerReport{0},
+        keyboardPath{}, pointerPath{}, udcName{},
+        keyboardLedState{INITIAL_LED_STATE}
+    {}
+#endif
+
     /* @brief Connects HID gadget to host */
     void connect();
     /* @brief Disconnects HID gadget from host */
