@@ -38,6 +38,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <future>
 #include <iostream>
 #include <map>
@@ -145,5 +146,24 @@ extern const uint32_t fanReconnectSuppressionSecs;
 int updateJson();
 int loadJson();
 bool isMountedFromRemote(const std::string& folderPath);
+int createMountDirectory(const std::string& path, int mode);
+int mountRemoteShare(const std::string& source, const std::string& target,
+                     const std::string& fsType, unsigned long flags,
+                     const std::string& options);
+int unmountRemoteShare(const std::string& target);
+
+#ifdef TEST
+using IsMountedFromRemoteHook = std::function<bool(const std::string&)>;
+using CreateMountDirectoryHook = std::function<int(const std::string&, int)>;
+using MountRemoteShareHook =
+    std::function<int(const std::string&, const std::string&,
+                      const std::string&, unsigned long, const std::string&)>;
+using UnmountRemoteShareHook = std::function<int(const std::string&)>;
+
+extern IsMountedFromRemoteHook testIsMountedFromRemoteHook;
+extern CreateMountDirectoryHook testCreateMountDirectoryHook;
+extern MountRemoteShareHook testMountRemoteShareHook;
+extern UnmountRemoteShareHook testUnmountRemoteShareHook;
+#endif
 
 } // namespace kvmDbus

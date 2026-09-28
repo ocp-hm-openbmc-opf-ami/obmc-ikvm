@@ -104,6 +104,198 @@ bool active = false;
 
 bool isAst2700Platform = false;
 
+#ifdef TEST
+SessionManagerPropertyHook testSessionManagerPropertyHook;
+SessionRegisterHook testSessionRegisterHook;
+SessionUnregisterHook testSessionUnregisterHook;
+PowerSaveModeHook testPowerSaveModeHook;
+PowerStateQueryHook testPowerStateQueryHook;
+SessionTimeoutQueryHook testSessionTimeoutQueryHook;
+RemoteConfigQueryHook testRemoteConfigQueryHook;
+EventLogHook testEventLogHook;
+UpdateRecStatusHook testUpdateRecStatusHook;
+#endif
+
+namespace
+{
+void applyHostPowerState(const std::string& powerState)
+{
+    if (powerState.find("Off") != std::string::npos)
+    {
+        hostPowerState = "Off";
+    }
+    else if (powerState.find("On") != std::string::npos)
+    {
+        hostPowerState = "On";
+    }
+    else
+    {
+        hostPowerState = "Unknown";
+    }
+}
+
+void applyRemoteConfig(const RemoteConfigProperties& properties)
+{
+    for (const auto& [key, value] : properties)
+    {
+        if (key == "Active")
+        {
+            if (auto config = std::get_if<bool>(&value))
+            {
+                active = *config;
+            }
+        }
+        else if (key == "MaxDumps")
+        {
+            if (auto config = std::get_if<uint8_t>(&value))
+            {
+                maxDumps = *config;
+            }
+        }
+        else if (key == "MaxDuration")
+        {
+            if (auto config = std::get_if<uint8_t>(&value))
+            {
+                maxDuration = *config;
+            }
+        }
+        else if (key == "MaxSize")
+        {
+            if (auto config = std::get_if<uint8_t>(&value))
+            {
+                maxSize = *config;
+            }
+        }
+        else if (key == "PathInServer")
+        {
+            if (auto config = std::get_if<std::string>(&value))
+            {
+                pathInServer = *config;
+            }
+        }
+        else if (key == "RecordToRemote")
+        {
+            if (auto config = std::get_if<bool>(&value))
+            {
+                recordToRemote = *config;
+            }
+        }
+        else if (key == "ServerIP")
+        {
+            if (auto config = std::get_if<std::string>(&value))
+            {
+                serverIP = *config;
+            }
+        }
+        else if (key == "ShareType")
+        {
+            if (auto config = std::get_if<std::string>(&value))
+            {
+                shareType = *config;
+            }
+        }
+        else
+        {
+            log<level::DEBUG>("Unknown data...");
+        }
+    }
+}
+} // namespace
+
+#ifdef TEST
+sdbusplus::bus_t makeDbusBus()
+{
+    return sdbusplus::bus::new_default_user();
+}
+#else
+sdbusplus::bus_t makeDbusBus()
+{
+    return sdbusplus::bus::new_default_system();
+}
+#endif
+
+void setUSBPowerSaveModeDbus(int status)
+{
+#ifdef TEST
+    if (testPowerSaveModeHook)
+    {
+        testPowerSaveModeHook(status);
+        return;
+    }
+#endif
+    auto bus = makeDbusBus();
+    auto methodCall = bus.new_method_call(
+        "xyz.openbmc_project.Settings", "/xyz/openbmc_project/logging/settings",
+        "xyz.openbmc_project.USB", "SetUSBPowerSaveMode");
+    methodCall.append(status);
+    bus.call(methodCall);
+}
+
+propertyValue getSessionManagerProperty(const std::string& interfaceName,
+                                        const std::string& propertyName)
+{
+#ifdef TEST
+    if (testSessionManagerPropertyHook)
+    {
+        return testSessionManagerPropertyHook(interfaceName, propertyName);
+    }
+#endif
+    const std::string& objectPath =
+        interfaceName == smgrWebIface ? smgrWEBObjPath : smgrKVMObjPath;
+    auto bus = makeDbusBus();
+    auto msg = bus.new_method_call(smgrService.c_str(), objectPath.c_str(),
+                                   DBUS_PROPERTIES_INTERFACE, "Get");
+    msg.append(interfaceName.c_str(), propertyName.c_str());
+
+    auto reply = bus.call(msg);
+    propertyValue propertyVal;
+    reply.read(propertyVal);
+    return propertyVal;
+}
+
+bool registerSessionDbus(uint8_t sessionId, const std::string& ipAddress,
+                         const std::string& userName, uint8_t sessionType,
+                         uint8_t privilege, uint8_t userId)
+{
+#ifdef TEST
+    if (testSessionRegisterHook)
+    {
+        return testSessionRegisterHook(sessionId, ipAddress, userName,
+                                       sessionType, privilege, userId);
+    }
+#endif
+    auto bus = makeDbusBus();
+    auto msg = bus.new_method_call(smgrService.c_str(), smgrKVMObjPath.c_str(),
+                                   smgrKVMIface.c_str(), "KvmSessionRegister");
+    msg.append(sessionId, ipAddress, userName, sessionType, privilege, userId);
+
+    auto reply = bus.call(msg);
+    bool status = false;
+    reply.read(status);
+    return status;
+}
+
+bool unregisterSessionDbus(uint8_t sessionId, uint8_t sessionType,
+                           uint8_t reason)
+{
+#ifdef TEST
+    if (testSessionUnregisterHook)
+    {
+        return testSessionUnregisterHook(sessionId, sessionType, reason);
+    }
+#endif
+    auto bus = makeDbusBus();
+    auto msg =
+        bus.new_method_call(smgrService.c_str(), smgrKVMObjPath.c_str(),
+                            smgrKVMIface.c_str(), "KvmSessionUnregister");
+    msg.append(sessionId, sessionType, reason);
+
+    auto reply = bus.call(msg);
+    bool status = false;
+    reply.read(status);
+    return status;
+}
+
 /*
  * ===============================================================
  *  <<<<<<<<<<<<<<< UTILITY METHOD DEFINATIONS >>>>>>>>>>>>>>>>>>
@@ -179,7 +371,14 @@ void powerStatusInit()
 
         try
         {
-            auto busPowerStat = sdbusplus::bus::new_default_system();
+#ifdef TEST
+            if (testPowerStateQueryHook)
+            {
+                applyHostPowerState(testPowerStateQueryHook());
+                return;
+            }
+#endif
+            auto busPowerStat = makeDbusBus();
             auto msgPowerStat = busPowerStat.new_method_call(
                 pwrStatService.c_str(), pwrStatObjPath.c_str(),
                 DBUS_PROPERTIES_INTERFACE, "Get");
@@ -191,12 +390,7 @@ void powerStatusInit()
 
             if (auto pws = std::get_if<std::string>(&powerStr))
             {
-                if (pws->find("Off") != std::string::npos)
-                    hostPowerState = "Off";
-                else if (pws->find("On") != std::string::npos)
-                    hostPowerState = "On";
-                else
-                    hostPowerState = "Unknown";
+                applyHostPowerState(*pws);
 
                 log<level::DEBUG>("Power state initialized",
                                   entry("STATE=%s", hostPowerState.c_str()),
@@ -231,7 +425,14 @@ void sessionTimeout()
 {
     try
     {
-        auto busSessTimoutValue = sdbusplus::bus::new_default_system();
+#ifdef TEST
+        if (testSessionTimeoutQueryHook)
+        {
+            timeoutValue = std::chrono::seconds(testSessionTimeoutQueryHook());
+            return;
+        }
+#endif
+        auto busSessTimoutValue = makeDbusBus();
         auto msgSessTimoutValue = busSessTimoutValue.new_method_call(
             serviceMgrService.c_str(), serviceMgrKvmObjPath.c_str(),
             DBUS_PROPERTIES_INTERFACE, "Get");
@@ -271,7 +472,14 @@ void getRemoteConf()
 {
     try
     {
-        auto busRemotConf = sdbusplus::bus::new_default_system();
+#ifdef TEST
+        if (testRemoteConfigQueryHook)
+        {
+            applyRemoteConfig(testRemoteConfigQueryHook());
+            return;
+        }
+#endif
+        auto busRemotConf = makeDbusBus();
         auto msgRemoteConf = busRemotConf.new_method_call(
             kvmServiceName.c_str(), videoRecObjPath.c_str(),
             DBUS_PROPERTIES_INTERFACE, "GetAll");
@@ -287,74 +495,10 @@ void getRemoteConf()
         }
 
         // Parse the returned dictionary of properties yyysssv
-        std::map<std::string, std::variant<uint8_t, std::string, bool>>
-            properties;
+        RemoteConfigProperties properties;
         reply.read(properties);
 
-        // Retrive required properties value
-        for (const auto& [key, value] : properties)
-        {
-            if (key == "Active")
-            {
-                if (auto v = std::get_if<bool>(&value))
-                {
-                    ikvm::active = *v;
-                }
-            }
-            else if (key == "MaxDumps")
-            {
-                if (auto v = std::get_if<uint8_t>(&value))
-                {
-                    ikvm::maxDumps = *v;
-                }
-            }
-            else if (key == "MaxDuration")
-            {
-                if (auto v = std::get_if<uint8_t>(&value))
-                {
-                    ikvm::maxDuration = *v;
-                }
-            }
-            else if (key == "MaxSize")
-            {
-                if (auto v = std::get_if<uint8_t>(&value))
-                {
-                    ikvm::maxSize = *v;
-                }
-            }
-            else if (key == "PathInServer")
-            {
-                if (auto v = std::get_if<std::string>(&value))
-                {
-                    ikvm::pathInServer = *v;
-                }
-            }
-            else if (key == "RecordToRemote")
-            {
-                if (auto v = std::get_if<bool>(&value))
-                {
-                    ikvm::recordToRemote = *v;
-                }
-            }
-            else if (key == "ServerIP")
-            {
-                if (auto v = std::get_if<std::string>(&value))
-                {
-                    ikvm::serverIP = *v;
-                }
-            }
-            else if (key == "ShareType")
-            {
-                if (auto v = std::get_if<std::string>(&value))
-                {
-                    ikvm::shareType = *v;
-                }
-            }
-            else
-            {
-                log<level::DEBUG>("Unknown data...");
-            }
-        }
+        applyRemoteConfig(properties);
     }
     catch (const sdbusplus::exception::SdBusError& e)
     {
@@ -433,7 +577,14 @@ void eventLogSupport(const std::string& msg)
 {
     try
     {
-        auto bus = sdbusplus::bus::new_default_system();
+#ifdef TEST
+        if (testEventLogHook)
+        {
+            testEventLogHook(msg);
+            return;
+        }
+#endif
+        auto bus = makeDbusBus();
         sdbusplus::message::message m = bus.new_method_call(
             eventLogService.c_str(), eventLogObjPath.c_str(),
             eventLogIface.c_str(), "Create");

@@ -304,7 +304,9 @@ sdbusplus::bus::match_t Monitor::videoRecordMonitor(
     auto videoRecordCallback = [&conn, this](sdbusplus::message_t& msg) {
         try
         {
+#ifndef TEST
             ikvm::getRemoteConf();
+#endif
             if (!ikvm::active)
             {
                 return;

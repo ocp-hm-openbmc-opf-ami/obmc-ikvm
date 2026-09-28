@@ -95,6 +95,14 @@ class Server
     Server(Server&&) = default;
     Server& operator=(Server&&) = default;
 
+#ifdef TEST
+    Server(Input& testInput, Video& testVideo) :
+        kvmFullPrivSession(false), pendingResize(false), frameCounter(0),
+        numClients(0), processTime(0), server(nullptr), input(testInput),
+        video(testVideo), calcFrameCRC(false)
+    {}
+#endif
+
     /* @brief Resizes the RFB framebuffer */
     void resize();
     /* @brief Executes any pending RFB updates and client input */
@@ -120,6 +128,35 @@ class Server
     {
         return video;
     }
+
+#ifdef TEST
+    rfbScreenInfoPtr getScreenInfoPtr() const
+    {
+        return server;
+    }
+    void setTestFrameCounter(int fc)
+    {
+        frameCounter = fc;
+    }
+    static std::vector<unsigned char> testCreateIVTPStopSessionPacket(
+        unsigned short stopReason, unsigned short status)
+    {
+        return createIVTPStopSessionPacket(stopReason, status);
+    }
+    static IVTPMessage testParseIvtpBuffer(const char* buffer,
+                                           uint32_t totalLength)
+    {
+        return parseIvtpBuffer(buffer, totalLength);
+    }
+    static void testHandleKVMServiceDisabled(rfbScreenInfoPtr rfbScreen)
+    {
+        handleKVMServiceDisabled(rfbScreen);
+    }
+    static void testSessionRegister(rfbClientPtr cl)
+    {
+        sessionRegister(cl);
+    }
+#endif
 
   private:
     /*

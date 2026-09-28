@@ -16,6 +16,10 @@
 
 namespace fs = std::filesystem;
 
+#ifdef IKVM_UT_OVERRIDE_VHUB_ROOT
+static constexpr const char* testVirtualHubRoot = IKVM_UT_OVERRIDE_VHUB_ROOT;
+#endif
+
 namespace ikvm
 {
 using namespace phosphor::logging;
@@ -42,8 +46,10 @@ Input::Input(const std::string& kbdPath, const std::string& ptrPath,
     hidUdcPath = OBMC_HID_PATH_node0;
 #endif
 
+#ifndef TEST
     hidUdcStream.exceptions(std::ofstream::failbit | std::ofstream::badbit);
     hidUdcStream.open(hidUdcPath, std::ios::out | std::ios::app);
+#endif
 }
 
 Input::~Input()
@@ -58,8 +64,10 @@ Input::~Input()
         close(pointerFd);
     }
 
+#ifndef TEST
     disconnect();
     hidUdcStream.close();
+#endif
 }
 
 void Input::connect()
@@ -71,6 +79,9 @@ void Input::connect()
             bool found = false;
             std::string detectedHubPath;
 
+#ifdef IKVM_UT_OVERRIDE_VHUB_ROOT
+            detectedHubPath = testVirtualHubRoot;
+#else
 #ifdef MULTI_HOST_DEFAULT_MODE
             // Determine hub path based on which node this is (obmc_hid vs
             // obmc_hid1)
@@ -111,6 +122,7 @@ void Input::connect()
                     detectedHubPath = usbVirtualHubPath;
                 }
             }
+#endif
 
             for (const auto& port : fs::directory_iterator(detectedHubPath))
             {
@@ -337,6 +349,15 @@ void Input::pointerEvent(int buttonMask, int x, int y, rfbClientPtr cl)
     /* Update the last activity time for session timeout */
     cd->lastActivityTime = std::chrono::steady_clock::now();
     Input* input = cd->input;
+
+#ifdef TEST
+    /* In test mode pointerFd is always -1; skip live server/screen access */
+    if (input->pointerFd < 0)
+    {
+        return;
+    }
+#endif
+
     Server* server = (Server*)cl->screen->screenData;
     const Video& video = server->getVideo();
 
