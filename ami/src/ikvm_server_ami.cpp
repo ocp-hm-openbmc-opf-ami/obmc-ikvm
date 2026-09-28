@@ -24,13 +24,7 @@ void Server::updatePowerSaveMode(int status)
     {
         try
         {
-            auto bus = sdbusplus::bus::new_system();
-            auto methodCall = bus.new_method_call(
-                "xyz.openbmc_project.Settings",
-                "/xyz/openbmc_project/logging/settings",
-                "xyz.openbmc_project.USB", "SetUSBPowerSaveMode");
-            methodCall.append(status);
-            bus.call(methodCall);
+            setUSBPowerSaveModeDbus(status);
         }
 
         catch (const sdbusplus::exception::SdBusError& e)
@@ -151,7 +145,6 @@ void Server::sessionRegister(rfbClientPtr cl)
         /* Method call for Registering */
         log<level::INFO>("Session Registering...");
 
-        auto busRegister = sdbusplus::bus::new_default_system();
         propertyValue propertyval;
 
         std::string ipAdress = DEFAULT_IP;
@@ -165,13 +158,8 @@ void Server::sessionRegister(rfbClientPtr cl)
             try
             {
                 bool found = false;
-                auto msgFetch = busRegister.new_method_call(
-                    smgrService.c_str(), smgrWEBObjPath.c_str(),
-                    DBUS_PROPERTIES_INTERFACE, "Get");
-                msgFetch.append(smgrWebIface.c_str(), "WebSessionInfo");
-
-                auto reply0 = busRegister.call(msgFetch);
-                reply0.read(propertyval);
+                propertyval =
+                    getSessionManagerProperty(smgrWebIface, "WebSessionInfo");
                 if (std::holds_alternative<sessionRet>(propertyval))
                 {
                     sessionRet& webSesionList =
@@ -241,27 +229,13 @@ void Server::sessionRegister(rfbClientPtr cl)
             }
         }
 
-        auto m = busRegister.new_method_call(
-            smgrService.c_str(), smgrKVMObjPath.c_str(), smgrKVMIface.c_str(),
-            "KvmSessionRegister");
-
-        m.append(cd->sessionId, ipAdress, userName, sessionType, privilege,
-                 userId);
-
-        auto reply = busRegister.call(m);
-        bool status = false;
-        reply.read(status);
+        bool status = registerSessionDbus(cd->sessionId, ipAdress, userName,
+                                          sessionType, privilege, userId);
 
         if (status)
         {
-            auto msg2 = busRegister.new_method_call(
-                smgrService.c_str(), smgrKVMObjPath.c_str(),
-                DBUS_PROPERTIES_INTERFACE, "Get");
-
-            msg2.append(smgrKVMIface, "KvmSessionInfo");
-
-            auto reply1 = busRegister.call(msg2);
-            reply1.read(propertyval);
+            propertyval =
+                getSessionManagerProperty(smgrKVMIface, "KvmSessionInfo");
 
             if (std::holds_alternative<sessionRet>(propertyval))
             {

@@ -138,6 +138,13 @@ class Args
         return calcFrameCRC;
     }
 
+#ifdef TEST
+    void testPrintUsage()
+    {
+        printUsage();
+    }
+#endif
+
   private:
     /* @brief Prints the application usage to stderr */
     void printUsage();

@@ -1,4 +1,10 @@
 option(
+    'tests',
+    type : 'feature',
+    description : 'Enable unit tests'
+)
+
+option(
     'dual_node',
     type : 'feature',
     value: 'disabled' ,

@@ -23,6 +23,11 @@
 
 namespace kvmDbus
 {
+#ifdef TEST
+SystemdReloadHook testSystemdReloadHook;
+SystemdStartUnitHook testSystemdStartUnitHook;
+#endif
+
 Interface::Interface(sdbusplus::asio::object_server& objserver) :
     server(objserver)
 {}
@@ -335,7 +340,12 @@ std::string Interface::UpdateTriggerDateTime(std::string date, std::string time)
         kvmDbus::loadJson();
 
         std::string timer_name = "auto-video-trigger.timer";
+#ifdef IKVM_UT_DROPIN_DIR_PREFIX
+        std::string dropin_dir =
+            std::string(IKVM_UT_DROPIN_DIR_PREFIX) + "/" + timer_name + ".d/";
+#else
         std::string dropin_dir = "/etc/systemd/system/" + timer_name + ".d/";
+#endif
 
         std::string dropin_file = dropin_dir + "10_OnCalendar_Auto_Video.conf";
         std::string temp_file =
@@ -383,19 +393,27 @@ std::string Interface::UpdateTriggerDateTime(std::string date, std::string time)
         // Replacing old drop-in file with the new one
         std::filesystem::rename(temp_file, dropin_file);
 
-        auto bus = sdbusplus::bus::new_system();
-        auto reload_call = bus.new_method_call(
-            "org.freedesktop.systemd1", "/org/freedesktop/systemd1",
-            "org.freedesktop.systemd1.Manager", "Reload");
-        bus.call_noreply(reload_call);
+#ifdef TEST
+        if (testSystemdReloadHook && testSystemdStartUnitHook)
+        {
+            testSystemdReloadHook();
+            testSystemdStartUnitHook(timer_name, "replace");
+        }
+        else
+#endif
+        {
+            auto bus = sdbusplus::bus::new_system();
+            auto reload_call = bus.new_method_call(
+                "org.freedesktop.systemd1", "/org/freedesktop/systemd1",
+                "org.freedesktop.systemd1.Manager", "Reload");
+            bus.call_noreply(reload_call);
 
-        auto start_call = bus.new_method_call(
-            "org.freedesktop.systemd1", "/org/freedesktop/systemd1",
-            "org.freedesktop.systemd1.Manager", "StartUnit");
-
-        start_call.append(timer_name.c_str(), "replace");
-
-        bus.call_noreply(start_call);
+            auto start_call = bus.new_method_call(
+                "org.freedesktop.systemd1", "/org/freedesktop/systemd1",
+                "org.freedesktop.systemd1.Manager", "StartUnit");
+            start_call.append(timer_name.c_str(), "replace");
+            bus.call_noreply(start_call);
+        }
 
         log<level::INFO>(
             "specific DateTime auto vedio trigger timer initiated successfully ");
@@ -437,7 +455,7 @@ std::string Interface::EnableRemoteStorage(bool recordToRemote)
 
             if (kvmDbus::isMountedFromRemote(localPath))
             {
-                if (umount(localPath.c_str()) == 0)
+                if (unmountRemoteShare(localPath) == 0)
                 {
                     log<level::INFO>("Unmounted remote storage successfully");
                 }
@@ -480,7 +498,7 @@ std::string Interface::UpdateRemoteStorageInfo(
             log<level::DEBUG>("Remote storage enabled... ");
 
             // Create the target directory if it doesn't exist
-            if (mkdir(localPath.c_str(), 0755) == -1 && errno != EEXIST)
+            if (createMountDirectory(localPath, 0755) == -1 && errno != EEXIST)
             {
                 status = "Failure: Error creating mount point";
                 // return status;
@@ -492,7 +510,7 @@ std::string Interface::UpdateRemoteStorageInfo(
                 log<level::INFO>(
                     "local mount point is mounted with old remote storage");
 
-                if (umount(localPath.c_str()) == 0)
+                if (unmountRemoteShare(localPath) == 0)
                 {
                     log<level::INFO>(
                         " Unmounted successfully: old remote storage");
@@ -637,8 +655,8 @@ std::string Interface::UpdateRemoteStorageInfo(
             }
 
             // Perform the mount
-            auto ec = mount(remotePath.c_str(), localPath.c_str(),
-                            shareType.c_str(), mountflags, options.c_str());
+            auto ec = mountRemoteShare(remotePath, localPath, shareType,
+                                       mountflags, options);
             if (ec)
             {
                 status = "Failure: ";
@@ -695,7 +713,7 @@ std::string Interface::UpdateRemoteStorageInfo(
             {
                 log<level::INFO>(
                     "local mount point is mounted with old remote storage");
-                if (umount(localPath.c_str()) == 0)
+                if (unmountRemoteShare(localPath) == 0)
                 {
                     log<level::INFO>(
                         " Unmounted successfully: old remote storage");
