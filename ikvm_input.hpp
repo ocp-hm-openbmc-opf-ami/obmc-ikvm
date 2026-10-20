@@ -55,6 +55,14 @@ class Input
     Input(Input&&) = default;
     Input& operator=(Input&&) = default;
 
+#ifdef TEST
+    Input() :
+        keyboardFd(-1), pointerFd(-1), keyboardReport{0}, pointerReport{0},
+        keyboardPath{}, pointerPath{}, udcName{},
+        keyboardLedState{INITIAL_LED_STATE}
+    {}
+#endif
+
     /* @brief Connects HID gadget to host */
     void connect();
     /* @brief Disconnects HID gadget from host */
@@ -83,6 +91,29 @@ class Input
 
     /* @brief getter method for keyboardLedState (AMI Extension) */
     int getkeyboardLedState();
+
+#ifdef TEST
+    void setTestKeyboardFd(int fd)
+    {
+        keyboardFd = fd;
+    }
+    void setTestPointerFd(int fd)
+    {
+        pointerFd = fd;
+    }
+    static uint8_t testKeyToScancode(rfbKeySym key)
+    {
+        return keyToScancode(key);
+    }
+    bool testWriteKeyboard(const uint8_t* report)
+    {
+        return writeKeyboard(report);
+    }
+    void testWritePointer(const uint8_t* report)
+    {
+        writePointer(report);
+    }
+#endif
 
   private:
     static constexpr int NUM_MODIFIER_BITS = 4;

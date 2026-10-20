@@ -3,3 +3,4 @@ subprojects/*
 !subprojects/phosphor-logging.wrap
 !subprojects/boost.wrap
 !subprojects/packagefiles
+!subprojects/libvncserver.wrap

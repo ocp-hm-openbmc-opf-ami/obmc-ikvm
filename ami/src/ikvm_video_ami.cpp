@@ -388,6 +388,13 @@ bool Video::updateRecStat(std::string recType)
 {
     bool status = false;
 
+#ifdef TEST
+    if (testUpdateRecStatusHook)
+    {
+        return testUpdateRecStatusHook(recType);
+    }
+    return false;
+#else
     try
     {
         auto bus = sdbusplus::bus::new_default_system();
@@ -423,6 +430,7 @@ bool Video::updateRecStat(std::string recType)
         log<level::ERR>("Error: ", entry("ERROR=%s", e.what()));
         status = false;
     }
+#endif
 
     return status;
 }

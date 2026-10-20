@@ -29,6 +29,7 @@
 #include <atomic>
 #include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -140,6 +141,8 @@ using sessionInfo =
     std::tuple<uint8_t, std::string, std::string, uint8_t, uint8_t, uint8_t>;
 using sessionRet = std::vector<sessionInfo>;
 using propertyValue = std::variant<sessionRet>;
+using RemoteConfigValue = std::variant<uint8_t, std::string, bool>;
+using RemoteConfigProperties = std::map<std::string, RemoteConfigValue>;
 
 using PropertyValue =
     std::variant<int, uint8_t, int16_t, int32_t, int64_t, uint16_t, uint32_t,
@@ -197,14 +200,57 @@ extern bool recordToRemote;
 extern bool active;
 
 /*@brief 2700 specific Config. */
+#ifdef IKVM_UT_VHUB_PATH_PREFIX
+static constexpr const char* usbVirtualHubPath2700A0 = IKVM_UT_VHUB_PATH_PREFIX
+    "/12011000.usb-vhub";
+static constexpr const char* usbVirtualHubPath2700A1 = IKVM_UT_VHUB_PATH_PREFIX
+    "/12060000.usb-vhub";
+#else
 static constexpr const char* usbVirtualHubPath2700A0 =
     "/sys/bus/platform/devices/12011000.usb-vhub";
 static constexpr const char* usbVirtualHubPath2700A1 =
     "/sys/bus/platform/devices/12060000.usb-vhub";
+#endif
 
 static constexpr int NO_VALID_FRAME_COUNT_THRESHOLD = 2;
 static constexpr int NO_VALID_FRAME_COUNT_RESET = 0;
 extern bool isAst2700Platform;
+
+sdbusplus::bus_t makeDbusBus();
+
+void setUSBPowerSaveModeDbus(int status);
+propertyValue getSessionManagerProperty(const std::string& interfaceName,
+                                        const std::string& propertyName);
+bool registerSessionDbus(uint8_t sessionId, const std::string& ipAddress,
+                         const std::string& userName, uint8_t sessionType,
+                         uint8_t privilege, uint8_t userId);
+bool unregisterSessionDbus(uint8_t sessionId, uint8_t sessionType,
+                           uint8_t reason);
+
+#ifdef TEST
+using SessionManagerPropertyHook =
+    std::function<propertyValue(const std::string&, const std::string&)>;
+using SessionRegisterHook =
+    std::function<bool(uint8_t, const std::string&, const std::string&, uint8_t,
+                       uint8_t, uint8_t)>;
+using SessionUnregisterHook = std::function<bool(uint8_t, uint8_t, uint8_t)>;
+using PowerSaveModeHook = std::function<void(int)>;
+using PowerStateQueryHook = std::function<std::string()>;
+using SessionTimeoutQueryHook = std::function<uint64_t()>;
+using RemoteConfigQueryHook = std::function<RemoteConfigProperties()>;
+using EventLogHook = std::function<void(const std::string&)>;
+using UpdateRecStatusHook = std::function<bool(const std::string&)>;
+
+extern SessionManagerPropertyHook testSessionManagerPropertyHook;
+extern SessionRegisterHook testSessionRegisterHook;
+extern SessionUnregisterHook testSessionUnregisterHook;
+extern PowerSaveModeHook testPowerSaveModeHook;
+extern PowerStateQueryHook testPowerStateQueryHook;
+extern SessionTimeoutQueryHook testSessionTimeoutQueryHook;
+extern RemoteConfigQueryHook testRemoteConfigQueryHook;
+extern EventLogHook testEventLogHook;
+extern UpdateRecStatusHook testUpdateRecStatusHook;
+#endif
 
 /*
  * ==========================================================

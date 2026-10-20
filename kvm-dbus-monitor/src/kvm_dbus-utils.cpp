@@ -14,10 +14,33 @@
 
 #include "kvm_dbus-utils.hpp"
 
+#include <sys/mount.h>
+#include <sys/stat.h>
+
 namespace kvmDbus
 {
 
+#ifdef TEST
+IsMountedFromRemoteHook testIsMountedFromRemoteHook;
+CreateMountDirectoryHook testCreateMountDirectoryHook;
+MountRemoteShareHook testMountRemoteShareHook;
+UnmountRemoteShareHook testUnmountRemoteShareHook;
+#endif
+
+#ifdef KVM_DBUS_TEST_JSON_PATH
+const std::string kvmJsonPath = KVM_DBUS_TEST_JSON_PATH;
+#else
 const std::string kvmJsonPath = "/etc/kvm-dbus-monitor.json";
+#endif
+
+static const char* mountsPath()
+{
+#ifdef KVM_DBUS_TEST_MOUNTS
+    return KVM_DBUS_TEST_MOUNTS;
+#else
+    return "/proc/mounts";
+#endif
+}
 
 const std::string ObjPath = "/xyz/openbmc_project/Kvm";
 const std::string ServiceName = "xyz.openbmc_project.Kvm";
@@ -130,7 +153,14 @@ int updateJson()
 
 bool isMountedFromRemote(const std::string& folderPath)
 {
-    std::ifstream mountsFile("/proc/mounts");
+#ifdef TEST
+    if (testIsMountedFromRemoteHook)
+    {
+        return testIsMountedFromRemoteHook(folderPath);
+    }
+#endif
+
+    std::ifstream mountsFile(mountsPath());
     std::string line;
     if (!mountsFile.is_open())
     {
@@ -157,6 +187,42 @@ bool isMountedFromRemote(const std::string& folderPath)
     }
 
     return false;
+}
+
+int createMountDirectory(const std::string& path, int mode)
+{
+#ifdef TEST
+    if (testCreateMountDirectoryHook)
+    {
+        return testCreateMountDirectoryHook(path, mode);
+    }
+#endif
+    return mkdir(path.c_str(), static_cast<mode_t>(mode));
+}
+
+int mountRemoteShare(const std::string& source, const std::string& target,
+                     const std::string& fsType, unsigned long flags,
+                     const std::string& options)
+{
+#ifdef TEST
+    if (testMountRemoteShareHook)
+    {
+        return testMountRemoteShareHook(source, target, fsType, flags, options);
+    }
+#endif
+    return mount(source.c_str(), target.c_str(), fsType.c_str(), flags,
+                 options.c_str());
+}
+
+int unmountRemoteShare(const std::string& target)
+{
+#ifdef TEST
+    if (testUnmountRemoteShareHook)
+    {
+        return testUnmountRemoteShareHook(target);
+    }
+#endif
+    return umount(target.c_str());
 }
 
 } // namespace kvmDbus

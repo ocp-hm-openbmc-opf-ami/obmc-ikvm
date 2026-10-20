@@ -212,6 +212,17 @@ class Monitor
     sdbusplus::bus::match_t watchdogTimeoutMonitor(
         const std::shared_ptr<sdbusplus::asio::connection> conn);
 
+#ifdef TEST
+    std::size_t testMatcherCount() const
+    {
+        return matchers.size();
+    }
+    uint32_t testTriggerEvents() const
+    {
+        return triggerEvents.to_ulong();
+    }
+#endif
+
   private:
     std::vector<sdbusplus::bus::match_t> matchers;
     triggerEvents32 triggerEvents{};

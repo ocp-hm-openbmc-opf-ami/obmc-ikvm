@@ -35,6 +35,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <future>
 #include <iostream>
 #include <map>
@@ -44,6 +45,15 @@
 
 namespace kvmDbus
 {
+
+#ifdef TEST
+using SystemdReloadHook = std::function<void()>;
+using SystemdStartUnitHook =
+    std::function<void(const std::string&, const std::string&)>;
+
+extern SystemdReloadHook testSystemdReloadHook;
+extern SystemdStartUnitHook testSystemdStartUnitHook;
+#endif
 
 /*
  * @class Interface

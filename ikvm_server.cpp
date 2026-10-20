@@ -68,9 +68,11 @@ Server::Server(const Args& args, Input& i, Video& v) :
         server->port = 5901;
     }
 
+#ifndef TEST
     rfbInitServer(server);
 
     rfbMarkRectAsModified(server, 0, 0, video.getWidth(), video.getHeight());
+#endif
 
     server->kbdAddEvent = Input::keyEvent;
     server->ptrAddEvent = Input::pointerEvent;
@@ -83,7 +85,9 @@ Server::Server(const Args& args, Input& i, Video& v) :
 
 Server::~Server()
 {
+#ifndef TEST
     rfbScreenCleanup(server);
+#endif
 }
 
 void Server::resize()
@@ -100,7 +104,9 @@ void Server::resize()
 
 void Server::run()
 {
+#ifndef TEST
     rfbProcessEvents(server, processTime);
+#endif
 
     rfbClientPtr cl = server->clientHead;
     while (cl)
@@ -280,6 +286,15 @@ void Server::sendFrame()
             cd->last_crc = frame_crc;
         }
 
+        // Avoid sending rectangles larger than the advertised framebuffer size,
+        // which can cause RFB clients to abort with a protocol error.
+        if (server->width != (int)video.getWidth() ||
+            server->height != (int)video.getHeight())
+        {
+            pendingResize = true;
+            continue;
+        }
+
         cd->needUpdate = false;
         frame_sent = true;
 
@@ -432,18 +447,9 @@ void Server::clientGone(rfbClientPtr cl)
         {
             if (cd->sessionId == id)
             {
-                auto busUnRegister = sdbusplus::bus::new_default_system();
-                auto m = busUnRegister.new_method_call(
-                    smgrService.c_str(), smgrKVMObjPath.c_str(),
-                    smgrKVMIface.c_str(), "KvmSessionUnregister");
                 uint8_t sessionType = KVM;
                 uint8_t reason = LOGOUT;
-
-                m.append(cd->sessionId, sessionType, reason);
-                auto reply = busUnRegister.call(m);
-                bool status = false;
-
-                reply.read(status);
+                unregisterSessionDbus(cd->sessionId, sessionType, reason);
             }
         }
     }

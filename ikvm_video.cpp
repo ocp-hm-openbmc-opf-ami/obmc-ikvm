@@ -670,13 +670,6 @@ void Video::start()
                         entry("PIXELFORMAT=%d", pixelformat));
     }
 
-    // Reset the width and height to their default values when the KVM connects
-    if (width != DEFAULT_WIDTH && height != DEFAULT_HEIGHT)
-    {
-        height = DEFAULT_HEIGHT;
-        width = DEFAULT_WIDTH;
-    }
-
     resize();
 
     if (isNewClient || getSignalStatus() == V4L2_IN_ST_NO_SIGNAL)
